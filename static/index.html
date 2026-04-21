@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LTX-2 Trainer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f17;--panel:#181825;--card:#1e1e2e;--border:#2a2a3e;
+  --accent:#7c6af7;--accent2:#5a4fcf;--green:#4ade80;--yellow:#fbbf24;
+  --red:#f87171;--blue:#60a5fa;--text:#cdd6f4;--muted:#6c7086;
+  --radius:10px;--font:'Inter',system-ui,sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── Header ── */
+header{background:var(--panel);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:16px;flex-shrink:0}
+header h1{font-size:16px;font-weight:600;color:#fff;letter-spacing:.5px}
+header h1 span{color:var(--accent)}
+.header-badge{background:var(--accent);color:#fff;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
+
+/* ── Layout ── */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* ── Sidebar ── */
+.sidebar{width:340px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;border-bottom:1px solid var(--border)}
+.tab-btn{flex:1;padding:12px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;font-weight:500;transition:.2s;border-bottom:2px solid transparent}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-btn:hover:not(.active){color:var(--text)}
+.tab-panel{display:none;flex:1;overflow-y:auto;padding:16px}
+.tab-panel.active{display:flex;flex-direction:column;gap:12px}
+
+/* ── Form Elements ── */
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;transition:.2s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:72px;line-height:1.5}
+.form-row{display:flex;gap:8px}
+.form-row>*{flex:1}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.hint{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── Buttons ── */
+.btn{padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;transition:.2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-danger{background:#3d1515;color:var(--red);border:1px solid #5a2020}
+.btn-danger:hover{background:#5a2020}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--text)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── Upload Area ── */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;transition:.2s;color:var(--muted)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);color:var(--accent)}
+.upload-zone.has-file{border-color:var(--green);color:var(--green)}
+.upload-zone input{display:none}
+
+/* ── Category List ── */
+.cat-list{display:flex;flex-direction:column;gap:6px}
+.cat-item{display:flex;gap:6px;align-items:center}
+.cat-item input{flex:1}
+.cat-item input.limit{width:64px;flex:none}
+.cat-item .btn-del{width:28px;height:28px;padding:0;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--red);background:#3d1515;border:1px solid #5a2020;border-radius:5px;cursor:pointer;flex-shrink:0}
+
+/* ── Jobs Panel ── */
+.jobs-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.jobs-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.jobs-header h2{font-size:14px;font-weight:600}
+.jobs-count{background:var(--border);color:var(--muted);font-size:11px;padding:2px 8px;border-radius:20px}
+.jobs-filter{margin-left:auto;display:flex;gap:6px}
+.filter-btn{padding:4px 10px;font-size:11px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--muted);cursor:pointer}
+.filter-btn.active{border-color:var(--accent);color:var(--accent)}
+.jobs-list{flex:1;overflow-y:auto;padding:14px 20px;display:flex;flex-direction:column;gap:8px}
+
+/* ── Job Card ── */
+.job-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:.2s}
+.job-card:hover{border-color:var(--accent);background:#22223a}
+.job-card.active{border-color:var(--accent);background:#22223a}
+.job-card-top{display:flex;align-items:flex-start;gap:8px}
+.job-name{font-weight:600;font-size:13px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap;flex-shrink:0}
+.badge-pending{background:#2a2510;color:var(--yellow)}
+.badge-running{background:#1a2a1a;color:var(--green)}
+.badge-done{background:#1a2033;color:var(--blue)}
+.badge-failed{background:#2a1a1a;color:var(--red)}
+.badge-cancelled{background:#222;color:var(--muted)}
+.job-meta{font-size:11px;color:var(--muted);margin-top:4px;display:flex;gap:10px}
+.job-phase{font-size:11px;color:var(--accent);margin-top:4px}
+.progress-wrap{margin-top:8px}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),#a78bfa);border-radius:2px;transition:width .5s ease}
+.progress-label{font-size:11px;color:var(--muted);margin-top:3px;display:flex;justify-content:space-between}
+.job-actions{display:flex;gap:6px;margin-top:8px}
+
+/* ── Detail Panel ── */
+.detail-panel{background:var(--panel);border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;transition:height .3s ease;overflow:hidden}
+.detail-panel.hidden{height:0}
+.detail-panel.open{height:340px}
+.detail-header{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
+.detail-header h3{font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail-tabs{display:flex;gap:2px}
+.dtab{padding:4px 12px;font-size:12px;border:none;background:none;color:var(--muted);cursor:pointer;border-radius:5px}
+.dtab.active{background:var(--accent);color:#fff}
+.detail-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 4px}
+.detail-close:hover{color:var(--text)}
+.detail-body{flex:1;overflow:hidden;display:flex}
+.detail-content{flex:1;overflow-y:auto;padding:12px 20px}
+
+/* ── Log ── */
+.log-box{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;line-height:1.6;color:#a6e3a1;white-space:pre-wrap;word-break:break-all;height:240px;overflow-y:auto}
+
+/* ── Samples ── */
+.samples-grid{display:flex;flex-wrap:wrap;gap:10px}
+.sample-item{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;width:200px}
+.sample-item video{width:100%;display:block}
+.sample-item-label{padding:6px 8px;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.sample-item-label a{color:var(--accent);text-decoration:none;font-size:11px}
+.empty-tip{color:var(--muted);font-size:13px;padding:20px 0;text-align:center}
+
+/* ── Checkpoints ── */
+.ckpt-list{display:flex;flex-direction:column;gap:6px}
+.ckpt-item{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:10px}
+.ckpt-name{flex:1;font-size:12px;font-family:monospace}
+.ckpt-size{font-size:11px;color:var(--muted);flex-shrink:0}
+.ckpt-item a.btn{text-decoration:none}
+
+/* ── Toast ── */
+.toast-wrap{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:6px;z-index:1000}
+.toast{padding:10px 16px;border-radius:8px;font-size:13px;animation:slideIn .3s ease;max-width:320px}
+.toast-ok{background:#1a2a1a;border:1px solid #2a4a2a;color:var(--green)}
+.toast-err{background:#2a1a1a;border:1px solid #4a2a2a;color:var(--red)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:none;opacity:1}}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── Misc ── */
+.divider{height:1px;background:var(--border);margin:4px 0}
+.section-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.no-jobs{color:var(--muted);text-align:center;padding:40px 20px;font-size:13px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>LTX<span>-2</span> Trainer</h1>
+  <span class="header-badge">API</span>
+  <span id="server-status" style="font-size:12px;color:var(--muted);margin-left:auto"></span>
+</header>
+
+<div class="main">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('download',this)">⬇ 下载数据</button>
+      <button class="tab-btn" onclick="switchTab('train',this)">🚀 创建训练</button>
+    </div>
+
+    <!-- Download Tab -->
+    <div class="tab-panel active" id="tab-download">
+      <div class="section-title">上传 CSV 文件</div>
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('csv-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
+        <input type="file" id="csv-input" accept=".csv" onchange="handleFileSelect(this)">
+        <div id="upload-text">📂 点击或拖入 CSV 文件</div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="section-title">指定下载类别</div>
+      <div class="cat-list" id="cat-list">
+        <div class="cat-item">
+          <input type="text" placeholder="类别名称（workflow_name）" class="cat-name">
+          <input type="number" value="80" min="1" max="500" class="limit cat-limit" title="下载数量上限">
+          <button class="btn-del" onclick="removeCat(this)">×</button>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="addCat()" style="align-self:flex-start;margin-top:4px">+ 添加类别</button>
+
+      <div class="divider"></div>
+      <button class="btn btn-primary" onclick="submitDownload()" id="btn-download">
+        ⬇ 开始下载
+      </button>
+    </div>
+
+    <!-- Train Tab -->
+    <div class="tab-panel" id="tab-train">
+      <div class="form-group">
+        <label>任务名称 *</label>
+        <input type="text" id="t-name" placeholder="例：GymKiss LoRA">
+      </div>
+      <div class="form-group">
+        <label>数据目录 *</label>
+        <input type="text" id="t-datadir" placeholder="健身房镜头亲吻 或 datasets/下载3/xxx">
+        <div class="hint">类别名（autotraindata/ 下）或相对/绝对路径</div>
+      </div>
+      <div class="form-group">
+        <label>描述 Caption *</label>
+        <textarea id="t-caption" placeholder="所有视频共用的训练描述（也作为验证 prompt）"></textarea>
+      </div>
+      <div class="form-group">
+        <label>触发词 Trigger（可选）</label>
+        <input type="text" id="t-trigger" placeholder="例：GymKiss">
+        <div class="hint">训练时自动添加在 caption 前</div>
+      </div>
+      <div class="divider"></div>
+      <div class="section-title">训练参数</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Steps</label>
+          <input type="number" id="t-steps" value="8000" min="100">
+        </div>
+        <div class="form-group">
+          <label>Rank</label>
+          <input type="number" id="t-rank" value="32" min="4">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Checkpoint 间隔</label>
+          <input type="number" id="t-ckpt" value="500" min="100">
+        </div>
+        <div class="form-group">
+          <label>Validation 间隔</label>
+          <input type="number" id="t-val" value="1000" min="100">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="t-audio" checked style="width:auto;margin-right:6px">
+          启用音频训练 (with_audio)
+        </label>
+      </div>
+      <div class="form-group">
+        <label>验证 Prompt（留空则用 Caption）</label>
+        <textarea id="t-valprompt" placeholder="可选，覆盖验证时使用的 prompt" style="min-height:54px"></textarea>
+      </div>
+      <div class="divider"></div>
+      <div class="section-title">续训（可选）</div>
+      <div class="form-group">
+        <label>从已有任务续训</label>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="t-resume-job" placeholder="粘贴上一个训练的 job_id" style="flex:1">
+          <button class="btn btn-ghost btn-sm" onclick="loadResumeInfo()" style="flex-shrink:0">查询</button>
+        </div>
+        <div class="hint">填写后点「查询」，自动填充续训参数</div>
+      </div>
+      <div id="resume-info-box" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:12px;color:var(--muted);margin-top:2px"></div>
+      <div class="form-group">
+        <label>或直接指定 Checkpoint 路径</label>
+        <input type="text" id="t-load-ckpt" placeholder="绝对路径 .safetensors 或 checkpoints/ 目录">
+        <div class="hint">留空则从头训练；填写后 LR scheduler 自动切换为 constant</div>
+      </div>
+      <button class="btn btn-primary" onclick="submitTrain()" id="btn-train" style="margin-top:4px">
+        🚀 加入训练队列
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Jobs Panel ── -->
+  <div class="jobs-panel">
+    <div class="jobs-header">
+      <h2>训练任务</h2>
+      <span class="jobs-count" id="jobs-count">0</span>
+      <div class="jobs-filter">
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">全部</button>
+        <button class="filter-btn" data-filter="running" onclick="setFilter('running',this)">运行中</button>
+        <button class="filter-btn" data-filter="pending" onclick="setFilter('pending',this)">排队</button>
+        <button class="filter-btn" data-filter="done" onclick="setFilter('done',this)">完成</button>
+      </div>
+    </div>
+    <div class="jobs-list" id="jobs-list">
+      <div class="no-jobs">暂无任务</div>
+    </div>
+
+    <!-- Detail Panel -->
+    <div class="detail-panel hidden" id="detail-panel">
+      <div class="detail-header">
+        <h3 id="detail-title">—</h3>
+        <div class="detail-tabs">
+          <button class="dtab active" onclick="switchDetailTab('log',this)">日志</button>
+          <button class="dtab" onclick="switchDetailTab('samples',this)">采样视频</button>
+          <button class="dtab" onclick="switchDetailTab('checkpoints',this)">模型文件</button>
+        </div>
+        <button class="detail-close" onclick="closeDetail()">×</button>
+      </div>
+      <div class="detail-body">
+        <div class="detail-content" id="detail-log-pane">
+          <div class="log-box" id="log-box">等待日志...</div>
+        </div>
+        <div class="detail-content" id="detail-samples-pane" style="display:none">
+          <div class="samples-grid" id="samples-grid"></div>
+        </div>
+        <div class="detail-content" id="detail-ckpts-pane" style="display:none">
+          <div class="ckpt-list" id="ckpt-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+const API = '';  // same origin
+let allJobs = [];
+let currentFilter = 'all';
+let selectedJobId = null;
+let selectedDetailTab = 'log';
+let refreshTimer = null;
+let detailRefreshTimer = null;
+let selectedFile = null;
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+
+window.addEventListener('DOMContentLoaded', () => {
+  fetchJobs();
+  refreshTimer = setInterval(fetchJobs, 3000);
+  checkServer();
+});
+
+async function checkServer() {
+  try {
+    const r = await fetch(API + '/api/jobs');
+    document.getElementById('server-status').textContent = r.ok ? '● 在线' : '● 离线';
+    document.getElementById('server-status').style.color = r.ok ? 'var(--green)' : 'var(--red)';
+  } catch {
+    document.getElementById('server-status').textContent = '● 离线';
+    document.getElementById('server-status').style.color = 'var(--red)';
+  }
+}
+
+// ── Tab Switching ─────────────────────────────────────────────────────────────
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function switchDetailTab(name, btn) {
+  selectedDetailTab = name;
+  document.querySelectorAll('.dtab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('detail-log-pane').style.display = name === 'log' ? '' : 'none';
+  document.getElementById('detail-samples-pane').style.display = name === 'samples' ? '' : 'none';
+  document.getElementById('detail-ckpts-pane').style.display = name === 'checkpoints' ? '' : 'none';
+  if (selectedJobId) loadDetailTab(selectedJobId, name);
+}
+
+// ── File Upload ───────────────────────────────────────────────────────────────
+
+function handleFileSelect(input) {
+  if (input.files[0]) setFile(input.files[0]);
+}
+function handleDrop(e) {
+  e.preventDefault();
+  const zone = document.getElementById('upload-zone');
+  zone.classList.remove('drag');
+  if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+}
+function setFile(file) {
+  selectedFile = file;
+  const zone = document.getElementById('upload-zone');
+  zone.classList.add('has-file');
+  document.getElementById('upload-text').textContent = '✓ ' + file.name;
+}
+
+// ── Category List ─────────────────────────────────────────────────────────────
+
+function addCat() {
+  const list = document.getElementById('cat-list');
+  const item = document.createElement('div');
+  item.className = 'cat-item';
+  item.innerHTML = `
+    <input type="text" placeholder="类别名称" class="cat-name">
+    <input type="number" value="80" min="1" max="500" class="limit cat-limit" title="数量">
+    <button class="btn-del" onclick="removeCat(this)">×</button>`;
+  list.appendChild(item);
+}
+function removeCat(btn) {
+  const list = document.getElementById('cat-list');
+  if (list.children.length > 1) btn.closest('.cat-item').remove();
+}
+
+// ── Download Submit ───────────────────────────────────────────────────────────
+
+async function submitDownload() {
+  if (!selectedFile) { toast('请先选择 CSV 文件', 'err'); return; }
+  const cats = [];
+  document.querySelectorAll('.cat-item').forEach(item => {
+    const name = item.querySelector('.cat-name').value.trim();
+    const limit = parseInt(item.querySelector('.cat-limit').value) || 80;
+    if (name) cats.push({ name, limit });
+  });
+  if (!cats.length) { toast('请至少添加一个下载类别', 'err'); return; }
+
+  const btn = document.getElementById('btn-download');
+  btn.disabled = true; btn.textContent = '⏳ 提交中...';
+
+  const fd = new FormData();
+  fd.append('csv_file', selectedFile);
+  fd.append('categories', JSON.stringify(cats));
+
+  try {
+    const r = await fetch(API + '/api/download', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (r.ok) {
+      toast(`下载任务已创建：${d.job_id}`, 'ok');
+      fetchJobs();
+    } else {
+      toast('创建失败：' + (d.detail || JSON.stringify(d)), 'err');
+    }
+  } catch (e) {
+    toast('请求失败：' + e, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '⬇ 开始下载';
+  }
+}
+
+// ── Train Submit ──────────────────────────────────────────────────────────────
+
+async function submitTrain() {
+  const name    = document.getElementById('t-name').value.trim();
+  const dataDir = document.getElementById('t-datadir').value.trim();
+  const caption = document.getElementById('t-caption').value.trim();
+  const trigger = document.getElementById('t-trigger').value.trim();
+  const steps   = parseInt(document.getElementById('t-steps').value);
+  const rank    = parseInt(document.getElementById('t-rank').value);
+  const ckpt    = parseInt(document.getElementById('t-ckpt').value);
+  const val     = parseInt(document.getElementById('t-val').value);
+  const audio   = document.getElementById('t-audio').checked;
+  const vp      = document.getElementById('t-valprompt').value.trim();
+  const resumeJob = document.getElementById('t-resume-job').value.trim();
+  const loadCkpt  = document.getElementById('t-load-ckpt').value.trim();
+
+  if (!name || !dataDir || !caption) { toast('请填写必填项（名称、数据目录、描述）', 'err'); return; }
+
+  const btn = document.getElementById('btn-train');
+  btn.disabled = true; btn.textContent = '⏳ 提交中...';
+
+  const body = { name, data_dir: dataDir, caption, trigger,
+    steps, rank, with_audio: audio,
+    checkpoint_interval: ckpt, validation_interval: val };
+  if (vp) body.validation_prompt = vp;
+  if (resumeJob) body.resume_from_job = resumeJob;
+  else if (loadCkpt) body.load_checkpoint = loadCkpt;
+
+  try {
+    const r = await fetch(API + '/api/train', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (r.ok) {
+      toast(`训练任务已加入队列（位置 ${d.queue_position}）：${d.job_id}`, 'ok');
+      fetchJobs();
+    } else {
+      toast('创建失败：' + (d.detail || JSON.stringify(d)), 'err');
+    }
+  } catch (e) {
+    toast('请求失败：' + e, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '🚀 加入训练队列';
+  }
+}
+
+// ── Jobs List ─────────────────────────────────────────────────────────────────
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderJobs();
+}
+
+async function fetchJobs() {
+  try {
+    const r = await fetch(API + '/api/jobs');
+    if (!r.ok) return;
+    allJobs = await r.json();
+    renderJobs();
+    if (selectedJobId) refreshDetail(selectedJobId);
+  } catch {}
+}
+
+function renderJobs() {
+  const list = document.getElementById('jobs-list');
+  let jobs = allJobs;
+  if (currentFilter !== 'all') jobs = jobs.filter(j => j.status === currentFilter);
+  document.getElementById('jobs-count').textContent = jobs.length;
+
+  if (!jobs.length) {
+    list.innerHTML = '<div class="no-jobs">暂无任务</div>';
+    return;
+  }
+
+  list.innerHTML = jobs.map(j => jobCardHTML(j)).join('');
+}
+
+function jobCardHTML(j) {
+  const statusLabel = {pending:'排队中',running:'运行中',done:'已完成',failed:'失败',cancelled:'已取消'}[j.status] || j.status;
+  const badgeClass = `badge-${j.status}`;
+  const d = j.details || {};
+  const phase = {precomputing:'预处理中',training:'训练中',done:'完成',pending:'等待中'}[d.phase] || d.phase || '';
+  const isActive = j.job_id === selectedJobId ? 'active' : '';
+
+  let progressHTML = '';
+  if (j.status === 'running' && d.phase === 'training' && d.total_steps) {
+    const pct = Math.round((d.current_step || 0) / d.total_steps * 100);
+    const loss = d.loss != null ? ` · Loss: ${d.loss.toFixed(4)}` : '';
+    progressHTML = `
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="progress-label">
+          <span>Step ${d.current_step || 0} / ${d.total_steps}${loss}</span>
+          <span>${pct}%</span>
+        </div>
+      </div>`;
+  } else if (j.status === 'running' && d.phase === 'precomputing') {
+    progressHTML = `<div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:100%;animation:pulse 1.5s ease infinite alternate"></div></div></div>`;
+  }
+
+  const canCancel = j.status === 'running' || j.status === 'pending';
+  const isType = j.job_type === 'download' ? '⬇' : '🎬';
+  const qp = j.queue_position > 0 ? ` · 队列第${j.queue_position}` : '';
+  const ts = j.created_at ? j.created_at.replace('T',' ').slice(0,16) : '';
+
+  return `
+  <div class="job-card ${isActive}" onclick="selectJob('${j.job_id}')">
+    <div class="job-card-top">
+      <span class="job-name">${isType} ${escHtml(j.name)}</span>
+      <span class="badge ${badgeClass}">${statusLabel}</span>
+    </div>
+    <div class="job-meta">
+      <span>${j.job_id.slice(0,8)}</span>
+      <span>${ts}</span>
+      ${qp ? `<span>${qp}</span>` : ''}
+    </div>
+    ${phase && j.status === 'running' ? `<div class="job-phase">▶ ${phase}</div>` : ''}
+    ${progressHTML}
+    ${j.error ? `<div style="font-size:11px;color:var(--red);margin-top:4px;word-break:break-all">${escHtml(j.error)}</div>` : ''}
+    <div class="job-actions" onclick="event.stopPropagation()">
+      ${j.job_type === 'train' ? `
+        <button class="btn btn-ghost btn-sm" onclick="selectJob('${j.job_id}');switchDetailTab('samples',document.querySelectorAll('.dtab')[1])">📹 采样</button>
+        <button class="btn btn-ghost btn-sm" onclick="selectJob('${j.job_id}');switchDetailTab('checkpoints',document.querySelectorAll('.dtab')[2])">💾 模型</button>
+        <button class="btn btn-ghost btn-sm" onclick="fillResumeFromJob('${j.job_id}')" title="从此任务的最新 checkpoint 续训">↩ 续训</button>
+      ` : ''}
+      ${canCancel ? `<button class="btn btn-danger btn-sm" onclick="cancelJob('${j.job_id}')">✕ 取消</button>` : ''}
+    </div>
+  </div>`;
+}
+
+// ── Job Detail ────────────────────────────────────────────────────────────────
+
+function selectJob(jobId) {
+  selectedJobId = jobId;
+  const panel = document.getElementById('detail-panel');
+  panel.classList.remove('hidden');
+  panel.classList.add('open');
+
+  const job = allJobs.find(j => j.job_id === jobId);
+  if (job) document.getElementById('detail-title').textContent = job.name + ' · ' + jobId.slice(0,8);
+
+  renderJobs();  // re-render to update active state
+  loadDetailTab(jobId, selectedDetailTab);
+
+  clearInterval(detailRefreshTimer);
+  detailRefreshTimer = setInterval(() => {
+    if (selectedJobId) loadDetailTab(selectedJobId, selectedDetailTab);
+  }, 4000);
+}
+
+function refreshDetail(jobId) {
+  if (jobId === selectedJobId) loadDetailTab(jobId, selectedDetailTab);
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  document.getElementById('detail-panel').classList.add('hidden');
+  selectedJobId = null;
+  clearInterval(detailRefreshTimer);
+  renderJobs();
+}
+
+async function loadDetailTab(jobId, tab) {
+  if (tab === 'log') loadLog(jobId);
+  else if (tab === 'samples') loadSamples(jobId);
+  else if (tab === 'checkpoints') loadCheckpoints(jobId);
+}
+
+async function loadLog(jobId) {
+  try {
+    const r = await fetch(`${API}/api/jobs/${jobId}/log?tail=200`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const box = document.getElementById('log-box');
+    const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+    box.textContent = d.log || '（暂无日志）';
+    if (wasAtBottom) box.scrollTop = box.scrollHeight;
+  } catch {}
+}
+
+async function loadSamples(jobId) {
+  try {
+    const r = await fetch(`${API}/api/train/${jobId}/samples`);
+    if (!r.ok) { document.getElementById('samples-grid').innerHTML = '<div class="empty-tip">暂无采样视频</div>'; return; }
+    const d = await r.json();
+    const grid = document.getElementById('samples-grid');
+    if (!d.samples || !d.samples.length) {
+      grid.innerHTML = '<div class="empty-tip">暂无采样视频（训练中每 validation_interval 步生成一个）</div>';
+      return;
+    }
+    grid.innerHTML = d.samples.map(name => {
+      const url = `${API}/api/train/${jobId}/samples/${encodeURIComponent(name)}`;
+      const step = name.match(/step_(\d+)/)?.[1] || name;
+      return `
+        <div class="sample-item">
+          <video src="${url}" controls muted playsinline preload="none" poster=""></video>
+          <div class="sample-item-label">
+            <span>Step ${parseInt(step)}</span>
+            <a href="${url}" download="${name}">⬇</a>
+          </div>
+        </div>`;
+    }).join('');
+  } catch {}
+}
+
+async function loadCheckpoints(jobId) {
+  try {
+    const r = await fetch(`${API}/api/train/${jobId}/checkpoints`);
+    if (!r.ok) { document.getElementById('ckpt-list').innerHTML = '<div class="empty-tip">暂无模型文件</div>'; return; }
+    const d = await r.json();
+    const list = document.getElementById('ckpt-list');
+    if (!d.checkpoints || !d.checkpoints.length) {
+      list.innerHTML = '<div class="empty-tip">暂无 checkpoint（训练中每 checkpoint_interval 步保存一个）</div>';
+      return;
+    }
+    list.innerHTML = d.checkpoints.map(c => {
+      const url = `${API}/api/train/${jobId}/checkpoints/${encodeURIComponent(c.name)}`;
+      return `
+        <div class="ckpt-item">
+          <span class="ckpt-name">${escHtml(c.name)}</span>
+          <span class="ckpt-size">${c.size_mb} MB</span>
+          <a class="btn btn-ghost btn-sm" href="${url}" download="${c.name}">⬇ 下载</a>
+        </div>`;
+    }).join('');
+  } catch {}
+}
+
+// ── Resume ────────────────────────────────────────────────────────────────────
+
+async function loadResumeInfo() {
+  const jobId = document.getElementById('t-resume-job').value.trim();
+  if (!jobId) { toast('请输入 job_id', 'err'); return; }
+  try {
+    const r = await fetch(`${API}/api/train/${jobId}/resume-info`);
+    const d = await r.json();
+    if (!r.ok) { toast('查询失败：' + (d.detail || ''), 'err'); return; }
+    if (!d.has_checkpoints) { toast('该任务暂无 checkpoint', 'err'); return; }
+    fillResumeForm(d);
+  } catch (e) { toast('请求失败：' + e, 'err'); }
+}
+
+async function fillResumeFromJob(jobId) {
+  try {
+    const r = await fetch(`${API}/api/train/${jobId}/resume-info`);
+    const d = await r.json();
+    if (!r.ok || !d.has_checkpoints) { toast('暂无可用 checkpoint', 'err'); return; }
+    // Switch to train tab
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+    document.getElementById('tab-train').classList.add('active');
+    fillResumeForm(d);
+    toast(`已从 ${jobId.slice(0,8)} 填入续训参数`, 'ok');
+  } catch (e) { toast('请求失败：' + e, 'err'); }
+}
+
+function fillResumeForm(d) {
+  const s = d.suggested_resume;
+  document.getElementById('t-name').value = s.name;
+  document.getElementById('t-datadir').value = s.data_dir;
+  document.getElementById('t-caption').value = s.caption;
+  document.getElementById('t-trigger').value = s.trigger || '';
+  document.getElementById('t-steps').value = s.steps;
+  document.getElementById('t-rank').value = s.rank;
+  document.getElementById('t-audio').checked = s.with_audio;
+  document.getElementById('t-ckpt').value = s.checkpoint_interval;
+  document.getElementById('t-val').value = s.validation_interval;
+  document.getElementById('t-resume-job').value = d.job_id;
+  document.getElementById('t-load-ckpt').value = '';  // will use resume_from_job
+  const box = document.getElementById('resume-info-box');
+  box.style.display = 'block';
+  box.innerHTML = `
+    <div style="color:var(--green);font-weight:600;margin-bottom:4px">✓ 找到 ${d.checkpoints.length} 个 checkpoint</div>
+    <div>最新：<code>${d.latest_checkpoint.split('/').pop()}</code></div>
+    <div>已训练：${d.trained_steps} 步 / ${d.original_steps} 步</div>
+    <div>续训步数：<strong>${d.remaining_steps}</strong>（已自动填入）</div>
+  `;
+}
+
+// ── Cancel ────────────────────────────────────────────────────────────────────
+
+async function cancelJob(jobId) {
+  if (!confirm('确定要取消该任务吗？')) return;
+  try {
+    const r = await fetch(`${API}/api/jobs/${jobId}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (r.ok) { toast('任务已取消', 'ok'); fetchJobs(); }
+    else toast('取消失败：' + (d.detail || ''), 'err');
+  } catch (e) { toast('请求失败：' + e, 'err'); }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+function toast(msg, type = 'ok') {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type === 'ok' ? 'ok' : 'err'}`;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+[
+  {
+    "name": "GymKiss LoRA",
+    "data_dir": "健身房镜头亲吻",
+    "caption": "在健身房镜子前，男女两人激情接吻，情绪热烈，有轻微的呼吸声和亲吻声。",
+    "trigger": "GymKiss",
+    "steps": 8000,
+    "rank": 32,
+    "with_audio": true,
+    "checkpoint_interval": 500,
+    "validation_interval": 1000
+  },
+  {
+    "name": "MirrorBooty LoRA",
+    "data_dir": "对镜抖臀",
+    "caption": "女性站在镜子前，随着节奏感强的音乐律动，左右摇摆抖动臀部，动作流畅有节奏。音乐节奏明显。",
+    "trigger": "MirrorBooty",
+    "steps": 6000,
+    "rank": 32,
+    "with_audio": true,
+    "checkpoint_interval": 500,
+    "validation_interval": 1000
+  },
+  {
+    "name": "TakeOffJacket LoRA",
+    "data_dir": "脱外套漏比基尼",
+    "caption": "女性站立，缓缓脱下外套，露出下面的比基尼，动作性感优雅，镜头近距离拍摄。有布料滑落的轻微声音。",
+    "trigger": "TakeOffJacket",
+    "steps": 8000,
+    "rank": 32,
+    "with_audio": true,
+    "checkpoint_interval": 500,
+    "validation_interval": 1000
+  }
+]
