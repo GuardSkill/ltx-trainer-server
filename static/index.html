@@ -68,9 +68,13 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 
 /* ── Jobs Panel ── */
 .jobs-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.jobs-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
-.jobs-header h2{font-size:14px;font-weight:600}
-.jobs-count{background:var(--border);color:var(--muted);font-size:11px;padding:2px 8px;border-radius:20px}
+.jobs-header{padding:10px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
+.jobs-type-tabs{display:flex;gap:6px}
+.type-tab{padding:5px 14px;font-size:13px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:none;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;transition:.2s}
+.type-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.type-tab:hover:not(.active){border-color:var(--text);color:var(--text)}
+.jobs-count{background:rgba(255,255,255,.15);color:inherit;font-size:10px;padding:1px 6px;border-radius:10px}
+.type-tab:not(.active) .jobs-count{background:var(--border);color:var(--muted)}
 .jobs-filter{margin-left:auto;display:flex;gap:6px}
 .filter-btn{padding:4px 10px;font-size:11px;border:1px solid var(--border);border-radius:5px;background:none;color:var(--muted);cursor:pointer}
 .filter-btn.active{border-color:var(--accent);color:var(--accent)}
@@ -143,6 +147,53 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 .divider{height:1px;background:var(--border);margin:4px 0}
 .section-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
 .no-jobs{color:var(--muted);text-align:center;padding:40px 20px;font-size:13px}
+
+/* ── CSV Analysis ── */
+.csv-template-list{display:flex;flex-direction:column;gap:5px}
+.csv-template-item{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.csv-template-item label{flex:1;font-size:12px;color:var(--text);margin:0;cursor:pointer;display:flex;align-items:center;gap:6px}
+.csv-template-item .tpl-count{font-size:10px;color:var(--muted);background:var(--border);padding:1px 6px;border-radius:10px;white-space:nowrap}
+.csv-template-item input[type=number]{width:64px;flex:none}
+.csv-template-item input[type=checkbox]{width:auto;flex:none;accent-color:var(--accent)}
+.dataset-chips{display:flex;flex-wrap:wrap;gap:6px}
+.dataset-chip{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:6px}
+.dataset-chip:hover{border-color:var(--accent);color:var(--accent)}
+.dataset-chip .chip-count{font-size:10px;color:var(--muted)}
+
+/* ── Dataset Manager ── */
+.ds-list{display:flex;flex-direction:column;gap:5px}
+.ds-item{background:var(--bg);border:1px solid var(--border);border-radius:7px;overflow:hidden}
+.ds-item-header{display:flex;align-items:center;gap:6px;padding:7px 8px}
+.ds-item-header input[type=checkbox]{width:auto;flex:none;accent-color:var(--accent)}
+.ds-item-name{flex:1;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds-item-count{font-size:10px;color:var(--muted);white-space:nowrap}
+.ds-item-actions{display:flex;gap:3px;flex-shrink:0}
+.ds-upload-zone{border-top:1px dashed var(--border);padding:10px;display:none}
+.ds-upload-zone.open{display:block}
+.ds-upload-input{display:none}
+.ds-upload-trigger{width:100%;padding:8px;border:1px dashed var(--border);border-radius:5px;background:none;color:var(--muted);font-size:12px;cursor:pointer;text-align:center;transition:.2s}
+.ds-upload-trigger:hover{border-color:var(--accent);color:var(--accent)}
+.ds-merge-bar{background:var(--card);border:1px solid var(--accent);border-radius:7px;padding:10px;display:none;gap:6px;flex-direction:column}
+.ds-merge-bar.open{display:flex}
+.ds-new-bar{display:none;flex-direction:column;gap:6px}
+.ds-new-bar.open{display:flex}
+
+/* ── Dataset Video Panel ── */
+.ds-videos-panel{border-top:1px solid var(--border);padding:8px;display:none}
+.ds-videos-panel.open{display:block}
+.ds-video-list{display:flex;flex-direction:column;gap:3px;max-height:180px;overflow-y:auto}
+.ds-video-item{display:flex;align-items:center;gap:6px;padding:4px 6px;background:var(--card);border:1px solid var(--border);border-radius:5px}
+.ds-video-name{flex:1;font-size:11px;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.ds-video-size{font-size:10px;color:var(--muted);flex-shrink:0;white-space:nowrap}
+
+/* ── Video Modal ── */
+.video-modal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;display:none;align-items:center;justify-content:center}
+.video-modal.open{display:flex}
+.video-modal-box{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);width:min(680px,92vw);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.video-modal-header{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:8px}
+.video-modal-title{flex:1;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.video-modal-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0}
+.video-modal-close:hover{color:var(--text)}
 </style>
 </head>
 <body>
@@ -173,8 +224,28 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
         <div id="upload-text">📂 点击或拖入 CSV 文件</div>
       </div>
 
+      <!-- CSV Analysis Result -->
+      <div id="csv-analysis" style="display:none">
+        <div class="divider"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div class="section-title" style="margin-bottom:0">CSV 中发现的模板</div>
+          <span id="csv-total" style="font-size:11px;color:var(--muted)"></span>
+          <div style="margin-left:auto;display:flex;gap:4px">
+            <button class="btn btn-ghost btn-sm" onclick="selectAllTemplates(true)">全选</button>
+            <button class="btn btn-ghost btn-sm" onclick="selectAllTemplates(false)">清除</button>
+          </div>
+        </div>
+        <div class="csv-template-list" id="csv-template-list"></div>
+        <button class="btn btn-ghost btn-sm" onclick="applyTemplatesToCatList()" style="margin-top:8px;align-self:flex-start">
+          ↓ 同步到下载列表
+        </button>
+      </div>
+
       <div class="divider"></div>
-      <div class="section-title">指定下载类别</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div class="section-title" style="margin-bottom:0">下载类别列表</div>
+        <button class="btn btn-ghost btn-sm" onclick="addCat()" style="margin-left:auto">+ 手动添加</button>
+      </div>
       <div class="cat-list" id="cat-list">
         <div class="cat-item">
           <input type="text" placeholder="类别名称（workflow_name）" class="cat-name">
@@ -182,7 +253,54 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
           <button class="btn-del" onclick="removeCat(this)">×</button>
         </div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="addCat()" style="align-self:flex-start;margin-top:4px">+ 添加类别</button>
+
+      <div class="divider"></div>
+
+      <!-- Dataset Manager -->
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <div class="section-title" style="margin-bottom:0">已下载数据集</div>
+        <button class="btn btn-ghost btn-sm" onclick="toggleNewDatasetBar()" style="margin-left:auto">+ 新建</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleMergeBar()" id="btn-merge">⊕ 合并</button>
+      </div>
+
+      <!-- New dataset inline form -->
+      <div class="ds-new-bar" id="ds-new-bar">
+        <div style="display:flex;gap:6px">
+          <input type="text" id="new-ds-name" placeholder="新数据集名称" style="flex:1">
+          <button class="btn btn-primary btn-sm" onclick="createDataset()">创建</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleNewDatasetBar()">✕</button>
+        </div>
+      </div>
+
+      <!-- Merge bar -->
+      <div class="ds-merge-bar" id="ds-merge-bar">
+        <div style="font-size:12px;color:var(--accent);font-weight:600">⊕ 合并选中的数据集</div>
+        <div style="font-size:11px;color:var(--muted)">勾选来源数据集后，选择合并到目标：</div>
+        <div style="display:flex;gap:6px">
+          <select id="merge-target-select" style="flex:1;font-size:12px">
+            <option value="">— 合并到（选择或新建）—</option>
+          </select>
+        </div>
+        <input type="text" id="merge-target-new" placeholder="或输入新数据集名称（优先）" style="font-size:12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="font-size:12px;color:var(--text);margin:0;display:flex;align-items:center;gap:5px">
+            <input type="checkbox" id="merge-move" style="width:auto;accent-color:var(--accent)">
+            移动文件（不保留原数据集副本）
+          </label>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="submitMerge()">开始合并</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleMergeBar()">取消</button>
+        </div>
+      </div>
+
+      <!-- Dataset list -->
+      <div class="ds-list" id="ds-list">
+        <div style="font-size:12px;color:var(--muted)">加载中...</div>
+      </div>
+
+      <!-- hidden file input for uploads -->
+      <input type="file" id="ds-upload-input" multiple accept="video/*,.mp4,.webm,.mov,.avi,.mkv" style="display:none" onchange="submitUpload(this)">
 
       <div class="divider"></div>
       <button class="btn btn-primary" onclick="submitDownload()" id="btn-download">
@@ -198,8 +316,11 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
       </div>
       <div class="form-group">
         <label>数据目录 *</label>
+        <select id="t-datadir-select" onchange="onDatasetSelect(this)" style="margin-bottom:4px">
+          <option value="">— 从已下载数据集选择 —</option>
+        </select>
         <input type="text" id="t-datadir" placeholder="健身房镜头亲吻 或 datasets/下载3/xxx">
-        <div class="hint">类别名（autotraindata/ 下）或相对/绝对路径</div>
+        <div class="hint">从下拉选择或手动填写路径（autotraindata/ 下目录名 / 绝对路径）</div>
       </div>
       <div class="form-group">
         <label>描述 Caption *</label>
@@ -239,8 +360,22 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
         </label>
       </div>
       <div class="form-group">
-        <label>验证 Prompt（留空则用 Caption）</label>
-        <textarea id="t-valprompt" placeholder="可选，覆盖验证时使用的 prompt" style="min-height:54px"></textarea>
+        <label>
+          <input type="checkbox" id="t-fp8" style="width:auto;margin-right:6px">
+          FP8 量化 (fp8_quant)
+        </label>
+        <div class="hint">开启后显存占用减少约 30-40%，训练速度略降</div>
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="t-highcap" style="width:auto;margin-right:6px">
+          High Capacity 模式 (high_capacity)
+        </label>
+        <div class="hint">额外训练 feed-forward 层，LoRA 表达能力更强，速度稍慢</div>
+      </div>
+      <div class="form-group">
+        <label>验证 Prompt（留空则自动用 Trigger + Caption 拼接）</label>
+        <textarea id="t-valprompt" placeholder="可选，留空时默认为：{trigger}, {caption}" style="min-height:54px"></textarea>
       </div>
       <div class="divider"></div>
       <div class="section-title">续训（可选）</div>
@@ -258,6 +393,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
         <input type="text" id="t-load-ckpt" placeholder="绝对路径 .safetensors 或 checkpoints/ 目录">
         <div class="hint">留空则从头训练；填写后 LR scheduler 自动切换为 constant</div>
       </div>
+      <input type="hidden" id="t-reuse-precomputed">
       <button class="btn btn-primary" onclick="submitTrain()" id="btn-train" style="margin-top:4px">
         🚀 加入训练队列
       </button>
@@ -267,8 +403,10 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
   <!-- ── Jobs Panel ── -->
   <div class="jobs-panel">
     <div class="jobs-header">
-      <h2>训练任务</h2>
-      <span class="jobs-count" id="jobs-count">0</span>
+      <div class="jobs-type-tabs">
+        <button class="type-tab active" onclick="setTypeTab('train',this)">🎬 训练任务 <span class="jobs-count" id="jobs-count-train">0</span></button>
+        <button class="type-tab" onclick="setTypeTab('download',this)">⬇ 下载任务 <span class="jobs-count" id="jobs-count-download">0</span></button>
+      </div>
       <div class="jobs-filter">
         <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">全部</button>
         <button class="filter-btn" data-filter="running" onclick="setFilter('running',this)">运行中</button>
@@ -308,10 +446,22 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 
 <div class="toast-wrap" id="toast-wrap"></div>
 
+<!-- Video Preview Modal -->
+<div class="video-modal" id="video-modal" onclick="if(event.target===this)closeVideoModal()">
+  <div class="video-modal-box">
+    <div class="video-modal-header">
+      <span class="video-modal-title" id="video-modal-title">—</span>
+      <button class="video-modal-close" onclick="closeVideoModal()">×</button>
+    </div>
+    <video id="video-modal-player" controls style="width:100%;display:block;max-height:480px;background:#000"></video>
+  </div>
+</div>
+
 <script>
 const API = '';  // same origin
 let allJobs = [];
 let currentFilter = 'all';
+let currentTypeTab = 'train';
 let selectedJobId = null;
 let selectedDetailTab = 'log';
 let refreshTimer = null;
@@ -324,6 +474,7 @@ window.addEventListener('DOMContentLoaded', () => {
   fetchJobs();
   refreshTimer = setInterval(fetchJobs, 3000);
   checkServer();
+  loadDatasets();
 });
 
 async function checkServer() {
@@ -372,6 +523,263 @@ function setFile(file) {
   const zone = document.getElementById('upload-zone');
   zone.classList.add('has-file');
   document.getElementById('upload-text').textContent = '✓ ' + file.name;
+  analyzeCSV(file);
+}
+
+// ── CSV Analysis ──────────────────────────────────────────────────────────────
+
+async function analyzeCSV(file) {
+  const analysisEl = document.getElementById('csv-analysis');
+  const listEl = document.getElementById('csv-template-list');
+  analysisEl.style.display = 'none';
+  listEl.innerHTML = '<div style="font-size:12px;color:var(--muted)">分析中...</div>';
+
+  const fd = new FormData();
+  fd.append('csv_file', file);
+  try {
+    const r = await fetch(API + '/api/csv/analyze', { method: 'POST', body: fd });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d.categories || !d.categories.length) return;
+
+    document.getElementById('csv-total').textContent = `共 ${d.total_rows} 条记录`;
+    listEl.innerHTML = d.categories.map((c, i) => `
+      <div class="csv-template-item">
+        <label>
+          <input type="checkbox" class="tpl-check" data-name="${escHtml(c.name)}" checked>
+          <span>${escHtml(c.name)}</span>
+          <span class="tpl-count">${c.count} 条</span>
+        </label>
+        <input type="number" class="tpl-limit" value="${Math.min(c.count, 80)}" min="1" max="${c.count}" title="下载数量">
+      </div>`).join('');
+    analysisEl.style.display = '';
+    applyTemplatesToCatList();
+  } catch {}
+}
+
+function selectAllTemplates(checked) {
+  document.querySelectorAll('.tpl-check').forEach(cb => cb.checked = checked);
+}
+
+function applyTemplatesToCatList() {
+  const items = [];
+  document.querySelectorAll('.csv-template-item').forEach(item => {
+    const cb = item.querySelector('.tpl-check');
+    if (!cb.checked) return;
+    const name = cb.dataset.name;
+    const limit = parseInt(item.querySelector('.tpl-limit').value) || 80;
+    items.push({ name, limit });
+  });
+  if (!items.length) return;
+
+  const list = document.getElementById('cat-list');
+  list.innerHTML = items.map(it => `
+    <div class="cat-item">
+      <input type="text" placeholder="类别名称" class="cat-name" value="${escHtml(it.name)}">
+      <input type="number" value="${it.limit}" min="1" max="500" class="limit cat-limit" title="数量">
+      <button class="btn-del" onclick="removeCat(this)">×</button>
+    </div>`).join('');
+}
+
+// ── Datasets Manager ─────────────────────────────────────────────────────────
+
+let currentUploadTarget = null;
+
+async function loadDatasets() {
+  try {
+    const r = await fetch(API + '/api/datasets');
+    if (!r.ok) return;
+    const d = await r.json();
+    renderDsList(d.datasets || []);
+    populateDatasetSelect(d.datasets || []);
+  } catch {}
+}
+
+function renderDsList(datasets) {
+  const el = document.getElementById('ds-list');
+  if (!datasets.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted)">暂无数据集</div>';
+    return;
+  }
+  el.innerHTML = datasets.map(ds => `
+    <div class="ds-item" id="ds-item-${CSS.escape(ds.name)}">
+      <div class="ds-item-header">
+        <input type="checkbox" class="ds-check" data-name="${escHtml(ds.name)}">
+        <span class="ds-item-name" title="${escHtml(ds.name)}">${escHtml(ds.name)}</span>
+        <span class="ds-item-count">${ds.file_count} 个</span>
+        <div class="ds-item-actions">
+          <button class="btn btn-ghost btn-sm" onclick="toggleDsVideos('${escHtml(ds.name)}')" title="浏览视频">📹</button>
+          <button class="btn btn-ghost btn-sm" onclick="openUpload('${escHtml(ds.name)}')" title="上传视频到此数据集">⬆</button>
+          <button class="btn btn-ghost btn-sm" onclick="useDatasetForTrain('${escHtml(ds.name)}')" title="用于训练">→训练</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteDataset('${escHtml(ds.name)}')" title="删除数据集">🗑</button>
+        </div>
+      </div>
+      <div class="ds-videos-panel" id="ds-videos-${CSS.escape(ds.name)}"></div>
+      <div class="ds-upload-zone" id="ds-upload-zone-${CSS.escape(ds.name)}">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">上传视频到 <strong>${escHtml(ds.name)}</strong></div>
+        <button class="ds-upload-trigger" onclick="triggerUpload('${escHtml(ds.name)}')">📁 点击选择视频文件（支持多选）</button>
+        <div id="ds-upload-progress-${CSS.escape(ds.name)}" style="display:none;font-size:11px;color:var(--muted);margin-top:6px"></div>
+      </div>
+    </div>`).join('');
+
+  // Populate merge target select
+  const sel = document.getElementById('merge-target-select');
+  sel.innerHTML = '<option value="">— 合并到（选择已有）—</option>';
+  datasets.forEach(ds => {
+    const opt = document.createElement('option');
+    opt.value = ds.name;
+    opt.textContent = `${ds.name} (${ds.file_count} 个)`;
+    sel.appendChild(opt);
+  });
+}
+
+function populateDatasetSelect(datasets) {
+  const sel = document.getElementById('t-datadir-select');
+  sel.innerHTML = '<option value="">— 从已下载数据集选择 —</option>';
+  datasets.forEach(ds => {
+    const opt = document.createElement('option');
+    opt.value = ds.name;
+    opt.textContent = `${ds.name}  (${ds.file_count} 个文件)`;
+    sel.appendChild(opt);
+  });
+}
+
+function onDatasetSelect(sel) {
+  if (sel.value) document.getElementById('t-datadir').value = sel.value;
+}
+
+function useDatasetForTrain(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+  document.getElementById('tab-train').classList.add('active');
+  document.getElementById('t-datadir').value = name;
+  document.getElementById('t-datadir-select').value = name;
+  toast(`已选择数据集：${name}`, 'ok');
+}
+
+// ── Dataset Create ────────────────────────────────────────────────────────────
+
+function toggleNewDatasetBar() {
+  const bar = document.getElementById('ds-new-bar');
+  bar.classList.toggle('open');
+  if (bar.classList.contains('open')) document.getElementById('new-ds-name').focus();
+}
+
+async function createDataset() {
+  const name = document.getElementById('new-ds-name').value.trim();
+  if (!name) { toast('请输入数据集名称', 'err'); return; }
+  try {
+    const r = await fetch(API + '/api/datasets', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ name })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      toast(`数据集「${name}」已创建`, 'ok');
+      document.getElementById('new-ds-name').value = '';
+      document.getElementById('ds-new-bar').classList.remove('open');
+      loadDatasets();
+    } else {
+      toast('创建失败：' + (d.detail || ''), 'err');
+    }
+  } catch (e) { toast('请求失败：' + e, 'err'); }
+}
+
+// ── Dataset Upload ────────────────────────────────────────────────────────────
+
+function openUpload(name) {
+  // Toggle upload zone for this dataset
+  const zone = document.getElementById('ds-upload-zone-' + CSS.escape(name));
+  if (!zone) return;
+  const isOpen = zone.classList.contains('open');
+  document.querySelectorAll('.ds-upload-zone').forEach(z => z.classList.remove('open'));
+  if (!isOpen) zone.classList.add('open');
+}
+
+function triggerUpload(name) {
+  currentUploadTarget = name;
+  document.getElementById('ds-upload-input').value = '';
+  document.getElementById('ds-upload-input').click();
+}
+
+async function submitUpload(input) {
+  if (!input.files.length || !currentUploadTarget) return;
+  const name = currentUploadTarget;
+  const progressEl = document.getElementById('ds-upload-progress-' + CSS.escape(name));
+  if (progressEl) { progressEl.style.display = ''; progressEl.textContent = `上传中 0 / ${input.files.length} …`; }
+
+  const fd = new FormData();
+  for (const f of input.files) fd.append('files', f);
+
+  try {
+    const r = await fetch(`${API}/api/datasets/${encodeURIComponent(name)}/upload`, {
+      method: 'POST', body: fd
+    });
+    const d = await r.json();
+    if (r.ok) {
+      toast(`上传完成：${d.saved} 个视频已保存，${d.skipped} 个跳过`, 'ok');
+      loadDatasets();
+      const zone = document.getElementById('ds-upload-zone-' + CSS.escape(name));
+      if (zone) zone.classList.remove('open');
+    } else {
+      toast('上传失败：' + (d.detail || ''), 'err');
+    }
+  } catch (e) { toast('请求失败：' + e, 'err'); }
+  finally {
+    if (progressEl) progressEl.style.display = 'none';
+  }
+}
+
+// ── Dataset Merge ─────────────────────────────────────────────────────────────
+
+function toggleMergeBar() {
+  document.getElementById('ds-merge-bar').classList.toggle('open');
+}
+
+async function submitMerge() {
+  const sources = [...document.querySelectorAll('.ds-check:checked')].map(cb => cb.dataset.name);
+  if (!sources.length) { toast('请勾选至少一个来源数据集', 'err'); return; }
+
+  const newName = document.getElementById('merge-target-new').value.trim();
+  const selName = document.getElementById('merge-target-select').value;
+  const target = newName || selName;
+  if (!target) { toast('请选择或输入目标数据集名称', 'err'); return; }
+
+  const move = document.getElementById('merge-move').checked;
+  const actionWord = move ? '移动' : '复制';
+
+  if (!confirm(`将 ${sources.length} 个数据集的文件${actionWord}到「${target}」？`)) return;
+
+  try {
+    const r = await fetch(`${API}/api/datasets/merge`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ sources, target, move })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      toast(`合并完成：${d.copied + d.moved} 个文件 → 「${target}」共 ${d.file_count} 个`, 'ok');
+      document.getElementById('merge-target-new').value = '';
+      document.getElementById('ds-merge-bar').classList.remove('open');
+      loadDatasets();
+    } else {
+      toast('合并失败：' + (d.detail || ''), 'err');
+    }
+  } catch (e) { toast('请求失败：' + e, 'err'); }
+}
+
+// ── Dataset Delete ────────────────────────────────────────────────────────────
+
+async function deleteDataset(name) {
+  if (!confirm(`确定删除数据集「${name}」及其所有文件？此操作不可撤销。`)) return;
+  try {
+    const r = await fetch(`${API}/api/datasets/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (r.ok) { toast(`已删除数据集「${name}」`, 'ok'); loadDatasets(); }
+    else toast('删除失败：' + (d.detail || ''), 'err');
+  } catch (e) { toast('请求失败：' + e, 'err'); }
 }
 
 // ── Category List ─────────────────────────────────────────────────────────────
@@ -389,6 +797,7 @@ function addCat() {
 function removeCat(btn) {
   const list = document.getElementById('cat-list');
   if (list.children.length > 1) btn.closest('.cat-item').remove();
+  else btn.closest('.cat-item').querySelector('.cat-name').value = '';
 }
 
 // ── Download Submit ───────────────────────────────────────────────────────────
@@ -433,14 +842,17 @@ async function submitTrain() {
   const dataDir = document.getElementById('t-datadir').value.trim();
   const caption = document.getElementById('t-caption').value.trim();
   const trigger = document.getElementById('t-trigger').value.trim();
-  const steps   = parseInt(document.getElementById('t-steps').value);
-  const rank    = parseInt(document.getElementById('t-rank').value);
-  const ckpt    = parseInt(document.getElementById('t-ckpt').value);
-  const val     = parseInt(document.getElementById('t-val').value);
-  const audio   = document.getElementById('t-audio').checked;
+  const steps    = parseInt(document.getElementById('t-steps').value);
+  const rank     = parseInt(document.getElementById('t-rank').value);
+  const ckpt     = parseInt(document.getElementById('t-ckpt').value);
+  const val      = parseInt(document.getElementById('t-val').value);
+  const audio    = document.getElementById('t-audio').checked;
+  const fp8      = document.getElementById('t-fp8').checked;
+  const highCap  = document.getElementById('t-highcap').checked;
   const vp      = document.getElementById('t-valprompt').value.trim();
-  const resumeJob = document.getElementById('t-resume-job').value.trim();
-  const loadCkpt  = document.getElementById('t-load-ckpt').value.trim();
+  const resumeJob     = document.getElementById('t-resume-job').value.trim();
+  const loadCkpt      = document.getElementById('t-load-ckpt').value.trim();
+  const reusePrecomp  = document.getElementById('t-reuse-precomputed').value.trim();
 
   if (!name || !dataDir || !caption) { toast('请填写必填项（名称、数据目录、描述）', 'err'); return; }
 
@@ -448,11 +860,12 @@ async function submitTrain() {
   btn.disabled = true; btn.textContent = '⏳ 提交中...';
 
   const body = { name, data_dir: dataDir, caption, trigger,
-    steps, rank, with_audio: audio,
+    steps, rank, with_audio: audio, fp8_quant: fp8, high_capacity: highCap,
     checkpoint_interval: ckpt, validation_interval: val };
   if (vp) body.validation_prompt = vp;
   if (resumeJob) body.resume_from_job = resumeJob;
   else if (loadCkpt) body.load_checkpoint = loadCkpt;
+  if (reusePrecomp) body.reuse_precomputed_from_job = reusePrecomp;
 
   try {
     const r = await fetch(API + '/api/train', {
@@ -474,6 +887,13 @@ async function submitTrain() {
 
 // ── Jobs List ─────────────────────────────────────────────────────────────────
 
+function setTypeTab(type, btn) {
+  currentTypeTab = type;
+  document.querySelectorAll('.type-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderJobs();
+}
+
 function setFilter(f, btn) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -493,15 +913,18 @@ async function fetchJobs() {
 
 function renderJobs() {
   const list = document.getElementById('jobs-list');
-  let jobs = allJobs;
+  const trainJobs = allJobs.filter(j => j.job_type === 'train');
+  const dlJobs = allJobs.filter(j => j.job_type === 'download');
+  document.getElementById('jobs-count-train').textContent = trainJobs.length;
+  document.getElementById('jobs-count-download').textContent = dlJobs.length;
+
+  let jobs = allJobs.filter(j => j.job_type === currentTypeTab);
   if (currentFilter !== 'all') jobs = jobs.filter(j => j.status === currentFilter);
-  document.getElementById('jobs-count').textContent = jobs.length;
 
   if (!jobs.length) {
     list.innerHTML = '<div class="no-jobs">暂无任务</div>';
     return;
   }
-
   list.innerHTML = jobs.map(j => jobCardHTML(j)).join('');
 }
 
@@ -552,8 +975,11 @@ function jobCardHTML(j) {
         <button class="btn btn-ghost btn-sm" onclick="selectJob('${j.job_id}');switchDetailTab('samples',document.querySelectorAll('.dtab')[1])">📹 采样</button>
         <button class="btn btn-ghost btn-sm" onclick="selectJob('${j.job_id}');switchDetailTab('checkpoints',document.querySelectorAll('.dtab')[2])">💾 模型</button>
         <button class="btn btn-ghost btn-sm" onclick="fillResumeFromJob('${j.job_id}')" title="从此任务的最新 checkpoint 续训">↩ 续训</button>
-      ` : ''}
+      ` : `
+        <button class="btn btn-ghost btn-sm" onclick="reuseDlConfig('${j.job_id}')" title="把此次下载的类别配置填回下载表单">↺ 重用配置</button>
+      `}
       ${canCancel ? `<button class="btn btn-danger btn-sm" onclick="cancelJob('${j.job_id}')">✕ 取消</button>` : ''}
+      ${!canCancel ? `<button class="btn btn-danger btn-sm" onclick="removeJob('${j.job_id}', '${j.job_type}')">🗑 删除</button>` : ''}
     </div>
   </div>`;
 }
@@ -622,11 +1048,11 @@ async function loadSamples(jobId) {
       const url = `${API}/api/train/${jobId}/samples/${encodeURIComponent(name)}`;
       const step = name.match(/step_(\d+)/)?.[1] || name;
       return `
-        <div class="sample-item">
-          <video src="${url}" controls muted playsinline preload="none" poster=""></video>
+        <div class="sample-item" style="cursor:pointer" onclick="openSampleModal('${escHtml(url)}','Step ${parseInt(step)} - ${escHtml(name)}')" title="点击播放">
+          <div style="height:112px;display:flex;align-items:center;justify-content:center;background:#111;font-size:28px">▶</div>
           <div class="sample-item-label">
             <span>Step ${parseInt(step)}</span>
-            <a href="${url}" download="${name}">⬇</a>
+            <a href="${url}" download="${escHtml(name)}" onclick="event.stopPropagation()">⬇</a>
           </div>
         </div>`;
     }).join('');
@@ -664,7 +1090,9 @@ async function loadResumeInfo() {
     const r = await fetch(`${API}/api/train/${jobId}/resume-info`);
     const d = await r.json();
     if (!r.ok) { toast('查询失败：' + (d.detail || ''), 'err'); return; }
-    if (!d.has_checkpoints) { toast('该任务暂无 checkpoint', 'err'); return; }
+    if (!d.has_checkpoints && !d.has_precomputed) {
+      toast('该任务无 checkpoint 也无预处理数据', 'err'); return;
+    }
     fillResumeForm(d);
   } catch (e) { toast('请求失败：' + e, 'err'); }
 }
@@ -673,41 +1101,72 @@ async function fillResumeFromJob(jobId) {
   try {
     const r = await fetch(`${API}/api/train/${jobId}/resume-info`);
     const d = await r.json();
-    if (!r.ok || !d.has_checkpoints) { toast('暂无可用 checkpoint', 'err'); return; }
-    // Switch to train tab
+    if (!r.ok) { toast('查询失败', 'err'); return; }
+    if (!d.has_checkpoints && !d.has_precomputed) {
+      toast('暂无 checkpoint 也无预处理数据', 'err'); return;
+    }
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
     document.getElementById('tab-train').classList.add('active');
     fillResumeForm(d);
-    toast(`已从 ${jobId.slice(0,8)} 填入续训参数`, 'ok');
+    const label = d.has_checkpoints ? '续训参数' : '重新训练参数（跳过预处理）';
+    toast(`参数已填入，请点击【加入训练队列】开始${d.has_checkpoints ? '续训' : '训练'}`, 'ok');
   } catch (e) { toast('请求失败：' + e, 'err'); }
 }
 
 function fillResumeForm(d) {
-  const s = d.suggested_resume;
-  document.getElementById('t-name').value = s.name;
-  document.getElementById('t-datadir').value = s.data_dir;
-  document.getElementById('t-caption').value = s.caption;
-  document.getElementById('t-trigger').value = s.trigger || '';
-  document.getElementById('t-steps').value = s.steps;
-  document.getElementById('t-rank').value = s.rank;
-  document.getElementById('t-audio').checked = s.with_audio;
-  document.getElementById('t-ckpt').value = s.checkpoint_interval;
-  document.getElementById('t-val').value = s.validation_interval;
-  document.getElementById('t-resume-job').value = d.job_id;
-  document.getElementById('t-load-ckpt').value = '';  // will use resume_from_job
   const box = document.getElementById('resume-info-box');
-  box.style.display = 'block';
-  box.innerHTML = `
-    <div style="color:var(--green);font-weight:600;margin-bottom:4px">✓ 找到 ${d.checkpoints.length} 个 checkpoint</div>
-    <div>最新：<code>${d.latest_checkpoint.split('/').pop()}</code></div>
-    <div>已训练：${d.trained_steps} 步 / ${d.original_steps} 步</div>
-    <div>续训步数：<strong>${d.remaining_steps}</strong>（已自动填入）</div>
-  `;
+
+  if (d.has_checkpoints) {
+    // Normal resume from checkpoint
+    const s = d.suggested_resume;
+    document.getElementById('t-name').value = s.name;
+    document.getElementById('t-datadir').value = s.data_dir;
+    document.getElementById('t-caption').value = s.caption;
+    document.getElementById('t-trigger').value = s.trigger || '';
+    document.getElementById('t-steps').value = s.steps;
+    document.getElementById('t-rank').value = s.rank;
+    document.getElementById('t-audio').checked = s.with_audio;
+    document.getElementById('t-fp8').checked = !!s.fp8_quant;
+    document.getElementById('t-highcap').checked = !!s.high_capacity;
+    document.getElementById('t-ckpt').value = s.checkpoint_interval;
+    document.getElementById('t-val').value = s.validation_interval;
+    document.getElementById('t-resume-job').value = d.job_id;
+    document.getElementById('t-load-ckpt').value = '';
+    document.getElementById('t-reuse-precomputed').value = '';
+    box.style.display = 'block';
+    box.innerHTML = `
+      <div style="color:var(--green);font-weight:600;margin-bottom:4px">✓ 找到 ${d.checkpoints.length} 个 checkpoint</div>
+      <div>最新：<code>${d.latest_checkpoint.split('/').pop()}</code></div>
+      <div>已训练：${d.trained_steps} 步 / ${d.original_steps} 步</div>
+      <div>续训步数：<strong>${d.remaining_steps}</strong>（已自动填入）</div>`;
+  } else if (d.has_precomputed && d.suggested_restart) {
+    // No checkpoint but precomputed data exists — restart training only
+    const s = d.suggested_restart;
+    document.getElementById('t-name').value = s.name;
+    document.getElementById('t-datadir').value = s.data_dir;
+    document.getElementById('t-caption').value = s.caption;
+    document.getElementById('t-trigger').value = s.trigger || '';
+    document.getElementById('t-steps').value = s.steps;
+    document.getElementById('t-rank').value = s.rank;
+    document.getElementById('t-audio').checked = s.with_audio;
+    document.getElementById('t-fp8').checked = !!s.fp8_quant;
+    document.getElementById('t-highcap').checked = !!s.high_capacity;
+    document.getElementById('t-ckpt').value = s.checkpoint_interval;
+    document.getElementById('t-val').value = s.validation_interval;
+    document.getElementById('t-resume-job').value = '';
+    document.getElementById('t-load-ckpt').value = '';
+    document.getElementById('t-reuse-precomputed').value = s.reuse_precomputed_from_job || '';
+    box.style.display = 'block';
+    box.innerHTML = `
+      <div style="color:var(--yellow);font-weight:600;margin-bottom:4px">⚡ 无 checkpoint，但预处理数据可复用</div>
+      <div>参数已填入，<strong>点击下方【加入训练队列】按钮</strong>即可跳过预处理直接开始训练</div>
+      <div style="margin-top:4px;color:var(--muted)">复用预处理数据自：<code>${d.job_id.slice(0,8)}</code></div>`;
+  }
 }
 
-// ── Cancel ────────────────────────────────────────────────────────────────────
+// ── Cancel / Remove ───────────────────────────────────────────────────────────
 
 async function cancelJob(jobId) {
   if (!confirm('确定要取消该任务吗？')) return;
@@ -717,6 +1176,112 @@ async function cancelJob(jobId) {
     if (r.ok) { toast('任务已取消', 'ok'); fetchJobs(); }
     else toast('取消失败：' + (d.detail || ''), 'err');
   } catch (e) { toast('请求失败：' + e, 'err'); }
+}
+
+async function removeJob(jobId, jobType) {
+  let deleteOutputs = false;
+  if (jobType === 'train') {
+    const choice = confirm(
+      '删除该训练任务记录？\n\n' +
+      '· 点「确定」：仅删除任务记录（保留 checkpoint 和采样视频）\n' +
+      '· 点「取消」后再操作：如需同时删除 checkpoint/采样视频，请改用带输出删除的确认。\n\n' +
+      '注：预处理缓存（latent）永远不会被删除，以便后续重用。\n\n确定仅删除任务记录？'
+    );
+    if (!choice) {
+      const withOutputs = confirm(
+        '是否同时删除 checkpoint 和采样视频？\n（预处理缓存不会被删除）\n\n确定删除任务记录 + 输出文件？'
+      );
+      if (!withOutputs) return;
+      deleteOutputs = true;
+    }
+  } else {
+    if (!confirm('确定要删除该下载任务记录吗？')) return;
+  }
+  try {
+    const url = `${API}/api/jobs/${jobId}/remove${deleteOutputs ? '?delete_outputs=true' : ''}`;
+    const r = await fetch(url, { method: 'DELETE' });
+    const d = await r.json();
+    if (r.ok) { toast(deleteOutputs ? '已删除任务记录及输出文件' : '已删除任务记录', 'ok'); fetchJobs(); }
+    else toast('删除失败：' + (d.detail || ''), 'err');
+  } catch (e) { toast('请求失败：' + e, 'err'); }
+}
+
+// ── Dataset Video Browser ──────────────────────────────────────────────────────
+
+async function toggleDsVideos(name) {
+  const panel = document.getElementById(`ds-videos-${CSS.escape(name)}`);
+  if (panel.classList.contains('open')) {
+    panel.classList.remove('open');
+    return;
+  }
+  panel.classList.add('open');
+  panel.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:4px 0">加载中...</div>';
+  try {
+    const r = await fetch(`${API}/api/datasets/${encodeURIComponent(name)}/videos`);
+    if (!r.ok) { panel.innerHTML = '<div style="font-size:12px;color:var(--red);padding:4px 0">加载失败（' + r.status + '）</div>'; return; }
+    const d = await r.json();
+    if (!d.videos || !d.videos.length) {
+      panel.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:4px 0">暂无视频文件</div>';
+      return;
+    }
+    panel.innerHTML = `<div class="ds-video-list">${d.videos.map(v => `
+      <div class="ds-video-item">
+        <span class="ds-video-name" title="${escHtml(v.filename)}">${escHtml(v.filename)}</span>
+        <span class="ds-video-size">${v.size_mb} MB</span>
+        <button class="btn btn-ghost btn-sm" onclick="openVideoModal('${escHtml(name)}','${escHtml(v.filename)}')">▶</button>
+      </div>`).join('')}</div>`;
+  } catch(e) {
+    panel.innerHTML = '<div style="font-size:12px;color:var(--red);padding:4px 0">加载失败</div>';
+  }
+}
+
+function openVideoModal(dsName, filename) {
+  document.getElementById('video-modal-title').textContent = `${dsName} / ${filename}`;
+  const player = document.getElementById('video-modal-player');
+  player.src = `${API}/api/datasets/${encodeURIComponent(dsName)}/videos/${encodeURIComponent(filename)}`;
+  player.load();
+  document.getElementById('video-modal').classList.add('open');
+}
+
+function openSampleModal(url, title) {
+  document.getElementById('video-modal-title').textContent = title;
+  const player = document.getElementById('video-modal-player');
+  player.src = url;
+  player.load();
+  document.getElementById('video-modal').classList.add('open');
+}
+
+function closeVideoModal() {
+  const player = document.getElementById('video-modal-player');
+  player.pause();
+  player.src = '';
+  document.getElementById('video-modal').classList.remove('open');
+}
+
+// ── Reuse Download Config ──────────────────────────────────────────────────────
+
+function reuseDlConfig(jobId) {
+  const job = allJobs.find(j => j.job_id === jobId);
+  if (!job) return;
+  const cats = (job.details && job.details.categories) || [];
+  if (!cats.length) { toast('该任务无类别配置', 'err'); return; }
+
+  // Switch to download tab
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+  document.getElementById('tab-download').classList.add('active');
+
+  // Fill cat-list with categories from the job
+  const list = document.getElementById('cat-list');
+  list.innerHTML = cats.map(c => `
+    <div class="cat-item">
+      <input type="text" placeholder="类别名称" class="cat-name" value="${escHtml(c.name)}">
+      <input type="number" value="${c.limit || 80}" min="1" max="500" class="limit cat-limit" title="数量">
+      <button class="btn-del" onclick="removeCat(this)">×</button>
+    </div>`).join('');
+
+  toast(`已载入 ${cats.length} 个类别配置，请重新上传 CSV 后下载`, 'ok');
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
