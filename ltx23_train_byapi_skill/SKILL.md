@@ -141,9 +141,10 @@ curl -s -X POST http://train_ltx23.dev.ad2.cc/api/download \
 | 参数 | 说明 | 默认 |
 |------|------|------|
 | `name` | 任务备注名，自己看得懂即可 | 必填 |
-| `data_dir` | 数据集名称（autotraindata/ 下的目录名）| 必填 |
-| `caption` | 视频内容描述，所有视频共用，也是验证 prompt 的基础 | 必填 |
+| `data_dir` | 数据集名称（autotraindata/ 下的目录名），单数据集时用 | 必填（多源用 data_sources 代替） |
+| `caption` | 视频内容描述，所有视频共用，也是验证 prompt 的基础 | 单数据集必填 |
 | `trigger` | 触发词（可选），训练时自动拼在 caption 前 | 可选 |
+| `data_sources` | 多数据集模式：每个来源有独立的 caption 和 trigger，替代 data_dir+caption | 可选 |
 | `steps` | 训练步数 | 8000 |
 | `rank` | LoRA rank，越大模型越精细但越慢 | 32 |
 | `with_audio` | 是否一并训练音频 | true |
@@ -156,6 +157,8 @@ curl -s -X POST http://train_ltx23.dev.ad2.cc/api/download \
 **Caption 怎么写**：描述视频里的动作、场景、情绪、声音；有触发词时 caption 里不用重复写它。  
 例：触发词 `GymKiss`，caption `在健身房镜头前，男女激情接吻，情绪热烈，有亲吻声和呼吸声。`  
 如果用户不知道怎么写，根据类别名帮他拟一段，让他确认后使用。
+
+**单数据集**：
 
 ```bash
 curl -s -X POST http://train_ltx23.dev.ad2.cc/api/train \
@@ -171,7 +174,26 @@ curl -s -X POST http://train_ltx23.dev.ad2.cc/api/train \
   }'
 ```
 
-多个数据集要同时训练时，把所有参数整理成表格让用户确认，然后逐个 `POST /api/train` 批量排队。训练是单任务队列，自动顺序执行。
+**多数据集合并训练（各自有独立提示词）**：用 `data_sources` 代替 `data_dir`+`caption`，每个来源有自己的 caption 和 trigger，precompute 时各自的 caption 分别写入 dataset.json，训练在同一个 LoRA 上进行：
+
+```bash
+curl -s -X POST http://train_ltx23.dev.ad2.cc/api/train \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "合并 LoRA",
+    "data_sources": [
+      {"data_dir": "数据集A", "caption": "场景A的描述", "trigger": "TrigA"},
+      {"data_dir": "数据集B", "caption": "场景B的描述", "trigger": "TrigB"}
+    ],
+    "steps": 8000,
+    "rank": 32,
+    "with_audio": true
+  }'
+```
+
+注意：`data_sources` 模式下顶层 `trigger` 不再影响每个视频的 caption（trigger 已在各 data_source 里设置），但如果设置了顶层 `trigger`，仍会作为 `--lora-trigger` 传给预处理脚本。
+
+多个数据集要分开训练时，把所有参数整理成表格让用户确认，然后用 `POST /api/train/batch` 一次性排队。训练是单任务队列，自动顺序执行。
 
 ---
 

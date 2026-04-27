@@ -150,7 +150,7 @@ Base URL: `http://train_ltx23.dev.ad2.cc`（本机：`http://localhost:8777`）
 | GET | `/api/train/{job_id}/checkpoints/{filename}` | 下载 checkpoint |
 | GET | `/api/train/{job_id}/resume-info` | 查询续训信息（checkpoint 情况 + 预处理数据情况） |
 
-#### 训练任务参数
+#### 训练任务参数（单数据集）
 
 ```json
 {
@@ -170,6 +170,28 @@ Base URL: `http://train_ltx23.dev.ad2.cc`（本机：`http://localhost:8777`）
   "reuse_precomputed_from_job": null
 }
 ```
+
+#### 训练任务参数（多数据集，各自独立 caption）
+
+用 `data_sources` 代替 `data_dir`+`caption`，可以将多个数据集合并到同一个 LoRA 训练，每个数据集使用各自的提示词：
+
+```json
+{
+  "name": "任务名称",
+  "data_sources": [
+    {"data_dir": "数据集A", "caption": "场景A描述", "trigger": "TrigA"},
+    {"data_dir": "数据集B", "caption": "场景B描述", "trigger": "TrigB"}
+  ],
+  "steps": 8000,
+  "rank": 32,
+  "with_audio": true
+}
+```
+
+- `data_dir` 和 `data_sources` 互斥，必须提供其中一个
+- 多数据集模式下，`validation_prompt` 留空时自动用第一个数据源的 `trigger + caption`
+
+#### 其他参数说明
 
 - `fp8_quant`：开启 FP8 量化，可减少约 30-40% 显存占用，训练速度略降，显存不足时建议开启
 - `high_capacity`：额外训练视频 feed-forward 层（`ff.net.0.proj` / `ff.net.2`），LoRA 表达能力更强，速度稍慢（`audio_ff` 层由 `with_audio` 单独控制）

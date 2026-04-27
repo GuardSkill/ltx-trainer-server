@@ -310,7 +310,7 @@ curl -s "http://train_ltx23.dev.ad2.cc/api/jobs?type=train&status=running"
 
 创建 LoRA 训练任务，加入队列顺序执行。
 
-**JSON body:**
+**JSON body（单数据集）:**
 ```json
 {
   "name": "GymKiss LoRA",
@@ -330,9 +330,25 @@ curl -s "http://train_ltx23.dev.ad2.cc/api/jobs?type=train&status=running"
 }
 ```
 
-- `data_dir`：类别名（在 `datasets/autotraindata/` 下查找）、相对路径或绝对路径
-- `validation_prompt`：null 时自动用 `trigger + caption` 拼接
-- `fp8_quant`：开启 fp8 量化，可减少约 30-40% 显存占用，训练速度略降，默认 false
+**JSON body（多数据集，各自独立 caption）:**
+```json
+{
+  "name": "合并 LoRA",
+  "data_sources": [
+    {"data_dir": "数据集A", "caption": "场景A的视频描述", "trigger": "TrigA"},
+    {"data_dir": "数据集B", "caption": "场景B的视频描述", "trigger": "TrigB"}
+  ],
+  "steps": 8000,
+  "rank": 32,
+  "with_audio": true
+}
+```
+
+- `data_dir`：类别名（在 `datasets/autotraindata/` 下查找）、相对路径或绝对路径（单数据集时使用）
+- `data_sources`：多数据集模式，替代 `data_dir`+`caption`；每个来源有独立的 `data_dir`、`caption`、`trigger`，precompute 时各自 caption 单独写入 dataset.json
+- `data_dir` 和 `data_sources` 互斥，必须提供其中一个
+- `validation_prompt`：null 时自动用第一个数据源的 `trigger + caption` 拼接
+- `fp8_quant`：开启 fp8 量化（实际写入配置为 `fp8-quanto`），可减少约 30-40% 显存占用，训练速度略降，默认 false
 - `high_capacity`：开启后额外训练视频 feed-forward 层（`ff.net.0.proj` / `ff.net.2`），LoRA 容量更大，速度稍慢，默认 false
   - 注：`audio_ff` 层由 `with_audio` 控制，开启音频训练时自动加入，与 `high_capacity` 无关
 - `resume_from_job`：填上一个训练 job_id，自动使用其最新 checkpoint 续训

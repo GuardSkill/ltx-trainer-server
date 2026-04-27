@@ -321,17 +321,27 @@ class JobManager:
             job.updated_at = datetime.now().isoformat()
             self._persist(job)
 
-            if self._active_train == job_id and self._active_proc:
-                proc = self._active_proc
-                self._active_proc = None
-                # Keep _active_train set until the kill completes so the queue
-                # loop doesn't start the next job before GPU memory is freed.
-                threading.Thread(
-                    target=self._kill_and_release,
-                    args=(job_id, proc),
-                    daemon=True,
-                    name=f"kill-{job_id}",
-                ).start()
+            if self._active_train == job_id:
+                if self._active_proc:
+                    # Normal path: process was started by this server instance
+                    proc = self._active_proc
+                    self._active_proc = None
+                    threading.Thread(
+                        target=self._kill_and_release,
+                        args=(job_id, proc),
+                        daemon=True,
+                        name=f"kill-{job_id}",
+                    ).start()
+                elif job.pid:
+                    # Adopted path: server restarted and re-adopted a live PID,
+                    # but _active_proc was never set.  Kill by stored PID directly.
+                    pid = job.pid
+                    threading.Thread(
+                        target=self._kill_pid_and_release,
+                        args=(job_id, pid),
+                        daemon=True,
+                        name=f"kill-{job_id}",
+                    ).start()
 
             if job_id in self._train_queue:
                 self._train_queue.remove(job_id)
@@ -346,6 +356,33 @@ class JobManager:
             if self._active_train == job_id:
                 self._active_train = None
         log.info("Job %s killed and _active_train released", job_id)
+
+    def _kill_pid_and_release(self, job_id: str, pid: int) -> None:
+        """Kill a process group by PID (used when _active_proc is unavailable,
+        e.g. after server restart adopted a live process)."""
+        log.info("Job %s: killing adopted PID %d by pgid", job_id, pid)
+        try:
+            pgid = os.getpgid(pid)
+            os.killpg(pgid, signal.SIGTERM)
+        except Exception:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except Exception:
+                pass
+        time.sleep(5)
+        try:
+            pgid = os.getpgid(pid)
+            os.killpg(pgid, signal.SIGKILL)
+        except Exception:
+            pass
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except Exception:
+            pass
+        with self._lock:
+            if self._active_train == job_id:
+                self._active_train = None
+        log.info("Job %s (PID %d) killed and _active_train released", job_id, pid)
 
     def queue_position(self, job_id: str) -> int:
         try:
@@ -522,10 +559,18 @@ class JobManager:
             return ret
 
         # ── Step 1 & 2: Build dataset JSON + Precompute (skip if reusing) ────────
-        data_dir = Path(d["data_dir"])
-        caption = d["caption"]
         trigger = d.get("trigger", "")
-        full_caption = f"{trigger}, {caption}".strip(", ") if trigger else caption
+        data_sources = d.get("data_sources")  # list of {data_dir, caption, trigger} or None
+
+        # Compute validation prompt fallback from caption(s)
+        if data_sources:
+            first = data_sources[0]
+            _t, _c = first.get("trigger", ""), first.get("caption", "")
+            _val_fallback = f"{_t}, {_c}".strip(", ") if _t else _c
+        else:
+            caption = d["caption"]
+            full_caption = f"{trigger}, {caption}".strip(", ") if trigger else caption
+            _val_fallback = full_caption
 
         reuse_src = d.get("reuse_precomputed_from_job")
         if reuse_src:
@@ -537,11 +582,27 @@ class JobManager:
             log.info("Reusing precomputed data from job %s: %s", reuse_src, precomputed_dir)
             self.update_job(job_id, status=JobStatus.RUNNING)
         else:
-            videos = sorted(data_dir.glob("*.mp4")) + sorted(data_dir.glob("*.webm"))
-            if not videos:
-                raise ValueError(f"No videos in {data_dir}")
+            # Build dataset entries (multi-source or single-source)
+            if data_sources:
+                dataset = []
+                for src in data_sources:
+                    src_dir = Path(src["data_dir"])
+                    src_t = src.get("trigger", "")
+                    src_c = src["caption"]
+                    src_full = f"{src_t}, {src_c}".strip(", ") if src_t else src_c
+                    src_videos = sorted(src_dir.glob("*.mp4")) + sorted(src_dir.glob("*.webm"))
+                    for v in src_videos:
+                        dataset.append({"caption": src_full, "media_path": str(v.relative_to(BASE_DIR))})
+                if not dataset:
+                    raise ValueError("No videos found in any data_sources")
+                log.info("Multi-source dataset: %d entries from %d sources", len(dataset), len(data_sources))
+            else:
+                data_dir = Path(d["data_dir"])
+                videos = sorted(data_dir.glob("*.mp4")) + sorted(data_dir.glob("*.webm"))
+                if not videos:
+                    raise ValueError(f"No videos in {data_dir}")
+                dataset = [{"caption": full_caption, "media_path": str(v.relative_to(BASE_DIR))} for v in videos]
 
-            dataset = [{"caption": full_caption, "media_path": str(v.relative_to(BASE_DIR))} for v in videos]
             json_path = BASE_DIR / f"autotrain_{job_id}.json"
             json_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2))
 
@@ -574,7 +635,7 @@ class JobManager:
         with_audio: bool = d.get("with_audio", DEFAULT_WITH_AUDIO)
         ckpt_interval: int = d.get("checkpoint_interval", DEFAULT_CHECKPOINT_INTERVAL)
         val_interval: int = d.get("validation_interval", DEFAULT_VALIDATION_INTERVAL)
-        val_prompt: str = d.get("validation_prompt") or full_caption
+        val_prompt: str = d.get("validation_prompt") or _val_fallback
         load_checkpoint: Optional[str] = d.get("load_checkpoint")
         # Use stored output_dir from details (includes job name suffix for new jobs)
         output_dir = _job_output_dir(self._jobs[job_id])
@@ -627,7 +688,7 @@ def _build_config(
     ckpt_value = f'"{load_checkpoint}"' if load_checkpoint else "null"
     # When resuming, use constant LR to avoid restarting the warmup schedule
     scheduler = "constant" if load_checkpoint else "linear"
-    quantization_value = '"fp8"' if fp8_quant else "null"
+    quantization_value = '"fp8-quanto"' if fp8_quant else "null"
     # audio_ff layers: trained whenever with_audio is enabled
     # video ff layers: only trained in high_capacity mode
     extra_modules = ""
@@ -740,11 +801,18 @@ class CategorySpec(BaseModel):
     limit: int = DEFAULT_DOWNLOAD_LIMIT
 
 
+class DataSource(BaseModel):
+    data_dir: str                        # Relative path under autotraindata/ OR absolute
+    caption: str                         # Caption for videos in this source
+    trigger: str = ""                    # Per-source trigger word (prepended to caption)
+
+
 class TrainRequest(BaseModel):
     name: str                            # Human-readable job name
-    data_dir: str                        # Relative path under autotraindata/ OR absolute
-    caption: str                         # Caption for all videos + validation prompt base
+    data_dir: str = ""                   # Relative path under autotraindata/ OR absolute (single-source)
+    caption: str = ""                    # Caption for all videos (single-source)
     trigger: str = ""                    # LoRA trigger word (prepended to caption)
+    data_sources: Optional[list[DataSource]] = None  # Multi-source: each dataset with its own caption
     steps: int = DEFAULT_STEPS
     rank: int = DEFAULT_RANK
     alpha: Optional[int] = None          # LoRA alpha; defaults to rank value if not set
@@ -802,21 +870,38 @@ async def download_videos(
     return {"job_id": job.job_id, "status": job.status, "categories": [c.model_dump() for c in cats]}
 
 
+def _resolve_data_dir(raw: str) -> Path:
+    """Resolve a data_dir string (relative or absolute) to an existing absolute Path."""
+    p = Path(raw)
+    if p.is_absolute():
+        if not p.is_dir():
+            raise HTTPException(400, f"data_dir is not a directory: {p}")
+        return p
+    for candidate in [DATASETS_DIR / raw, BASE_DIR / raw, p]:
+        if candidate.exists():
+            if not candidate.is_dir():
+                raise HTTPException(400, f"data_dir is not a directory: {candidate}")
+            return candidate
+    raise HTTPException(400, f"data_dir not found: {raw}")
+
+
 @app.post("/api/train", tags=["train"])
 def queue_train(req: TrainRequest):
     """Queue a LoRA training job. Multiple jobs are processed sequentially."""
-    # Resolve data_dir
-    data_dir = Path(req.data_dir)
-    if not data_dir.is_absolute():
-        for candidate in [DATASETS_DIR / req.data_dir, BASE_DIR / req.data_dir, Path(req.data_dir)]:
-            if candidate.exists():
-                data_dir = candidate
-                break
-        else:
-            raise HTTPException(400, f"data_dir not found: {req.data_dir}")
+    if not req.data_sources and not req.data_dir:
+        raise HTTPException(400, "Either data_dir or data_sources must be provided")
+    if not req.data_sources and not req.caption:
+        raise HTTPException(400, "caption is required when using data_dir")
 
-    if not data_dir.is_dir():
-        raise HTTPException(400, f"data_dir is not a directory: {data_dir}")
+    # Resolve data source(s)
+    resolved_sources: Optional[list[dict]] = None
+    if req.data_sources:
+        resolved_sources = []
+        for src in req.data_sources:
+            src_dir = _resolve_data_dir(src.data_dir)
+            resolved_sources.append({"data_dir": str(src_dir), "caption": src.caption, "trigger": src.trigger})
+    else:
+        data_dir = _resolve_data_dir(req.data_dir)
 
     # Resolve checkpoint path for resume
     resolved_ckpt: Optional[str] = None
@@ -844,9 +929,10 @@ def queue_train(req: TrainRequest):
     job_id = uuid.uuid4().hex[:12]
     safe = _sanitize_name(req.name)
     details = {
-        "data_dir": str(data_dir),
+        "data_dir": str(data_dir) if not resolved_sources else "",
         "caption": req.caption,
         "trigger": req.trigger,
+        "data_sources": resolved_sources,
         "steps": req.steps,
         "rank": req.rank,
         "alpha": req.alpha,
@@ -873,19 +959,29 @@ def queue_train_batch(reqs: list[TrainRequest]):
     results = []
     for req in reqs:
         try:
-            # Reuse the same validation logic from queue_train
-            data_dir = Path(req.data_dir)
-            if not data_dir.is_absolute():
-                for candidate in [DATASETS_DIR / req.data_dir, BASE_DIR / req.data_dir, Path(req.data_dir)]:
-                    if candidate.exists():
-                        data_dir = candidate
-                        break
-                else:
-                    results.append({"name": req.name, "error": f"data_dir not found: {req.data_dir}"})
-                    continue
-            if not data_dir.is_dir():
-                results.append({"name": req.name, "error": f"data_dir is not a directory: {data_dir}"})
+            if not req.data_sources and not req.data_dir:
+                results.append({"name": req.name, "error": "Either data_dir or data_sources must be provided"})
                 continue
+            if not req.data_sources and not req.caption:
+                results.append({"name": req.name, "error": "caption is required when using data_dir"})
+                continue
+
+            # Resolve data source(s)
+            b_resolved_sources: Optional[list[dict]] = None
+            if req.data_sources:
+                b_resolved_sources = []
+                for src in req.data_sources:
+                    try:
+                        src_dir = _resolve_data_dir(src.data_dir)
+                    except HTTPException as he:
+                        raise ValueError(he.detail)
+                    b_resolved_sources.append({"data_dir": str(src_dir), "caption": src.caption, "trigger": src.trigger})
+            else:
+                try:
+                    data_dir = _resolve_data_dir(req.data_dir)
+                except HTTPException as he:
+                    results.append({"name": req.name, "error": he.detail})
+                    continue
 
             resolved_ckpt: Optional[str] = None
             if req.resume_from_job:
@@ -914,9 +1010,10 @@ def queue_train_batch(reqs: list[TrainRequest]):
             b_job_id = uuid.uuid4().hex[:12]
             b_safe = _sanitize_name(req.name)
             details = {
-                "data_dir": str(data_dir),
+                "data_dir": str(data_dir) if not b_resolved_sources else "",
                 "caption": req.caption,
                 "trigger": req.trigger,
+                "data_sources": b_resolved_sources,
                 "steps": req.steps,
                 "rank": req.rank,
                 "with_audio": req.with_audio,
