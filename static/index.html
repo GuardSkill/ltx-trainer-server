@@ -148,13 +148,31 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 .section-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
 .no-jobs{color:var(--muted);text-align:center;padding:40px 20px;font-size:13px}
 
-/* ── CSV Analysis ── */
-.csv-template-list{display:flex;flex-direction:column;gap:5px}
-.csv-template-item{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
-.csv-template-item label{flex:1;font-size:12px;color:var(--text);margin:0;cursor:pointer;display:flex;align-items:center;gap:6px}
-.csv-template-item .tpl-count{font-size:10px;color:var(--muted);background:var(--border);padding:1px 6px;border-radius:10px;white-space:nowrap}
-.csv-template-item input[type=number]{width:64px;flex:none}
+/* ── CSV Multi-select Dropdown ── */
+.tpl-select{position:relative}
+.tpl-select-trigger{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:13px;color:var(--text);transition:.2s;user-select:none}
+.tpl-select-trigger:hover{border-color:var(--accent)}
+.tpl-select-trigger.open{border-color:var(--accent)}
+.tpl-select-label{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpl-select-arrow{color:var(--muted);font-size:11px;flex-shrink:0;transition:.2s}
+.tpl-select-trigger.open .tpl-select-arrow{transform:rotate(180deg)}
+.tpl-select-panel{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--panel);border:1px solid var(--accent);border-radius:8px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,.5);display:none;flex-direction:column}
+.tpl-select-panel.open{display:flex}
+.tpl-select-search-wrap{padding:8px 8px 4px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:5px}
+.tpl-select-search{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:6px 10px;color:var(--text);font-size:12px;outline:none;width:100%}
+.tpl-select-search:focus{border-color:var(--accent)}
+.tpl-select-actions{display:flex;align-items:center;gap:4px}
+.tpl-select-count{font-size:11px;color:var(--muted);margin-left:auto}
+.csv-template-list{display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;padding:6px}
+.csv-template-item{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px;cursor:pointer}
+.csv-template-item:hover{border-color:var(--accent)}
+.csv-template-item.checked{border-color:var(--accent);background:#1c1c30}
+.csv-template-item label{flex:1;font-size:12px;color:var(--text);margin:0;cursor:pointer;display:flex;align-items:center;gap:6px;overflow:hidden}
+.csv-template-item label span:first-of-type{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.csv-template-item .tpl-count{font-size:10px;color:var(--muted);background:var(--border);padding:1px 6px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.csv-template-item input[type=number]{width:60px;flex:none}
 .csv-template-item input[type=checkbox]{width:auto;flex:none;accent-color:var(--accent)}
+.csv-template-item.hidden{display:none}
 .dataset-chips{display:flex;flex-wrap:wrap;gap:6px}
 .dataset-chip{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:6px}
 .dataset-chip:hover{border-color:var(--accent);color:var(--accent)}
@@ -227,17 +245,26 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
       <!-- CSV Analysis Result -->
       <div id="csv-analysis" style="display:none">
         <div class="divider"></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div class="section-title" style="margin-bottom:0">CSV 中发现的模板</div>
-          <span id="csv-total" style="font-size:11px;color:var(--muted)"></span>
-          <div style="margin-left:auto;display:flex;gap:4px">
-            <button class="btn btn-ghost btn-sm" onclick="selectAllTemplates(true)">全选</button>
-            <button class="btn btn-ghost btn-sm" onclick="selectAllTemplates(false)">清除</button>
+        <div class="section-title">选择要下载的类别</div>
+        <div class="tpl-select" id="tpl-select">
+          <div class="tpl-select-trigger" id="tpl-select-trigger" onclick="toggleTplDropdown(event)">
+            <span class="tpl-select-label" id="tpl-select-label">点击选择类别...</span>
+            <span class="tpl-select-arrow">▾</span>
+          </div>
+          <div class="tpl-select-panel" id="tpl-select-panel" onclick="event.stopPropagation()">
+            <div class="tpl-select-search-wrap">
+              <input class="tpl-select-search" id="tpl-search" placeholder="搜索类别名称..." oninput="filterTemplates(this.value)">
+              <div class="tpl-select-actions">
+                <button class="btn btn-ghost btn-sm" onclick="selectAllTemplates(true)">全选</button>
+                <button class="btn btn-ghost btn-sm" onclick="selectAllTemplates(false)">清除</button>
+                <span class="tpl-select-count" id="csv-total"></span>
+              </div>
+            </div>
+            <div class="csv-template-list" id="csv-template-list"></div>
           </div>
         </div>
-        <div class="csv-template-list" id="csv-template-list"></div>
         <button class="btn btn-ghost btn-sm" onclick="applyTemplatesToCatList()" style="margin-top:8px;align-self:flex-start">
-          ↓ 同步到下载列表
+          ↓ 添加选中到下载列表
         </button>
       </div>
 
@@ -542,43 +569,124 @@ async function analyzeCSV(file) {
     const d = await r.json();
     if (!d.categories || !d.categories.length) return;
 
-    document.getElementById('csv-total').textContent = `共 ${d.total_rows} 条记录`;
-    listEl.innerHTML = d.categories.map((c, i) => `
-      <div class="csv-template-item">
-        <label>
-          <input type="checkbox" class="tpl-check" data-name="${escHtml(c.name)}" checked>
-          <span>${escHtml(c.name)}</span>
+    document.getElementById('csv-total').textContent = `共 ${d.categories.length} 个类别`;
+    listEl.innerHTML = d.categories.map((c) => `
+      <div class="csv-template-item" onclick="toggleTplItem(this)">
+        <label onclick="event.stopPropagation()">
+          <input type="checkbox" class="tpl-check" data-name="${escHtml(c.name)}" onchange="onTplCheck(this)">
+          <span title="${escHtml(c.name)}">${escHtml(c.name)}</span>
           <span class="tpl-count">${c.count} 条</span>
         </label>
-        <input type="number" class="tpl-limit" value="${Math.min(c.count, 80)}" min="1" max="${c.count}" title="下载数量">
+        <input type="number" class="tpl-limit" value="${Math.min(c.count, 80)}" min="1" max="${c.count}" title="下载数量" onclick="event.stopPropagation()">
       </div>`).join('');
+    document.getElementById('tpl-search').value = '';
+    updateTplLabel();
     analysisEl.style.display = '';
-    applyTemplatesToCatList();
   } catch {}
 }
 
+// ── Tpl Dropdown ──────────────────────────────────────────────────────────────
+
+function toggleTplDropdown(e) {
+  e && e.stopPropagation();
+  const panel = document.getElementById('tpl-select-panel');
+  const trigger = document.getElementById('tpl-select-trigger');
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  trigger.classList.toggle('open', !isOpen);
+  if (!isOpen) document.getElementById('tpl-search').focus();
+}
+
+function closeTplDropdown() {
+  document.getElementById('tpl-select-panel').classList.remove('open');
+  document.getElementById('tpl-select-trigger').classList.remove('open');
+}
+
+document.addEventListener('click', (e) => {
+  const sel = document.getElementById('tpl-select');
+  if (sel && !sel.contains(e.target)) closeTplDropdown();
+});
+
+function toggleTplItem(item) {
+  const cb = item.querySelector('.tpl-check');
+  cb.checked = !cb.checked;
+  item.classList.toggle('checked', cb.checked);
+  updateTplLabel();
+}
+
+function onTplCheck(cb) {
+  cb.closest('.csv-template-item').classList.toggle('checked', cb.checked);
+  updateTplLabel();
+}
+
+function updateTplLabel() {
+  const checked = [...document.querySelectorAll('.tpl-check:checked')];
+  const label = document.getElementById('tpl-select-label');
+  if (!checked.length) {
+    label.textContent = '点击选择类别...';
+    label.style.color = 'var(--muted)';
+  } else if (checked.length <= 3) {
+    label.textContent = checked.map(cb => cb.dataset.name).join('、');
+    label.style.color = '';
+  } else {
+    label.textContent = `已选 ${checked.length} 个类别`;
+    label.style.color = '';
+  }
+}
+
 function selectAllTemplates(checked) {
-  document.querySelectorAll('.tpl-check').forEach(cb => cb.checked = checked);
+  document.querySelectorAll('.csv-template-item:not(.hidden)').forEach(item => {
+    item.querySelector('.tpl-check').checked = checked;
+    item.classList.toggle('checked', checked);
+  });
+  updateTplLabel();
+}
+
+function filterTemplates(q) {
+  const kw = q.trim().toLowerCase();
+  document.querySelectorAll('.csv-template-item').forEach(item => {
+    const name = item.querySelector('.tpl-check').dataset.name.toLowerCase();
+    item.classList.toggle('hidden', kw !== '' && !name.includes(kw));
+  });
 }
 
 function applyTemplatesToCatList() {
-  const items = [];
+  // Collect existing names in cat-list to avoid duplicates
+  const existing = new Set(
+    [...document.querySelectorAll('#cat-list .cat-name')]
+      .map(el => el.value.trim()).filter(Boolean)
+  );
+
+  const toAdd = [];
   document.querySelectorAll('.csv-template-item').forEach(item => {
     const cb = item.querySelector('.tpl-check');
     if (!cb.checked) return;
     const name = cb.dataset.name;
+    if (existing.has(name)) return;  // skip duplicates
     const limit = parseInt(item.querySelector('.tpl-limit').value) || 80;
-    items.push({ name, limit });
+    toAdd.push({ name, limit });
   });
-  if (!items.length) return;
+
+  if (!toAdd.length) { toast('没有新类别可添加（已全部存在或未勾选）', 'err'); return; }
 
   const list = document.getElementById('cat-list');
-  list.innerHTML = items.map(it => `
-    <div class="cat-item">
+  // Remove the blank placeholder row if it's the only item and empty
+  const items = list.querySelectorAll('.cat-item');
+  if (items.length === 1 && !items[0].querySelector('.cat-name').value.trim()) {
+    items[0].remove();
+  }
+
+  toAdd.forEach(it => {
+    const div = document.createElement('div');
+    div.className = 'cat-item';
+    div.innerHTML = `
       <input type="text" placeholder="类别名称" class="cat-name" value="${escHtml(it.name)}">
       <input type="number" value="${it.limit}" min="1" max="500" class="limit cat-limit" title="数量">
-      <button class="btn-del" onclick="removeCat(this)">×</button>
-    </div>`).join('');
+      <button class="btn-del" onclick="removeCat(this)">×</button>`;
+    list.appendChild(div);
+  });
+
+  toast(`已添加 ${toAdd.length} 个类别到下载列表`, 'ok');
 }
 
 // ── Datasets Manager ─────────────────────────────────────────────────────────
