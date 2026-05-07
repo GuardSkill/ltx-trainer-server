@@ -1,6 +1,6 @@
 # LTX Trainer Server
 
-LTX-2.3 视频 LoRA 训练的 HTTP API 服务 + Web UI，配套 [ltx-trainer](../ltx-trainer) 使用。
+LTX-2.3 视频 LoRA 训练的 HTTP API 服务 + Web UI，配套 [ltx-trainer](../ltx-trainer) 使用。并有其配套的skil文档说明，可以将服务部署到域名后，通过openclaw,codex,claude code等agent开启自动化训练。
 
 ---
 

@@ -565,9 +565,9 @@ async function analyzeCSV(file) {
   fd.append('csv_file', file);
   try {
     const r = await fetch(API + '/api/csv/analyze', { method: 'POST', body: fd });
-    if (!r.ok) return;
+    if (!r.ok) { toast(`CSV 分析失败（${r.status}）`, 'err'); return; }
     const d = await r.json();
-    if (!d.categories || !d.categories.length) return;
+    if (!d.categories || !d.categories.length) { toast('CSV 中未找到 workflow_name 类别，请确认文件格式', 'err'); return; }
 
     document.getElementById('csv-total').textContent = `共 ${d.categories.length} 个类别`;
     listEl.innerHTML = d.categories.map((c) => `
@@ -582,7 +582,7 @@ async function analyzeCSV(file) {
     document.getElementById('tpl-search').value = '';
     updateTplLabel();
     analysisEl.style.display = '';
-  } catch {}
+  } catch (e) { toast('CSV 分析请求失败：' + e, 'err'); }
 }
 
 // ── Tpl Dropdown ──────────────────────────────────────────────────────────────
