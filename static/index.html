@@ -494,6 +494,7 @@ let selectedDetailTab = 'log';
 let refreshTimer = null;
 let detailRefreshTimer = null;
 let selectedFile = null;
+let csvParsed = null;  // { headerLine, lines, workflowColIdx, categories }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 
@@ -553,36 +554,86 @@ function setFile(file) {
   analyzeCSV(file);
 }
 
+// ── CSV Parsing (client-side) ─────────────────────────────────────────────────
+
+function parseCSVLine(line) {
+  const fields = [];
+  let field = '', inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"' && line[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') inQuotes = false;
+      else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { fields.push(field); field = ''; }
+      else field += c;
+    }
+  }
+  fields.push(field);
+  return fields;
+}
+
+function parseCSV(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);  // strip BOM
+  const allLines = text.split(/\r?\n/);
+  const nonEmpty = allLines.filter(l => l.trim());
+  if (nonEmpty.length < 2) return null;
+
+  const header = parseCSVLine(nonEmpty[0]);
+  const colIdx = header.findIndex(h => h.trim() === 'workflow_name');
+  if (colIdx === -1) return null;
+
+  const dataLines = nonEmpty.slice(1);
+  const counts = {};
+  for (const line of dataLines) {
+    const name = (parseCSVLine(line)[colIdx] || '').trim();
+    if (name) counts[name] = (counts[name] || 0) + 1;
+  }
+  const categories = Object.entries(counts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+
+  return { headerLine: nonEmpty[0], lines: dataLines, workflowColIdx: colIdx, categories };
+}
+
 // ── CSV Analysis ──────────────────────────────────────────────────────────────
 
-async function analyzeCSV(file) {
+function analyzeCSV(file) {
   const analysisEl = document.getElementById('csv-analysis');
   const listEl = document.getElementById('csv-template-list');
   analysisEl.style.display = 'none';
-  listEl.innerHTML = '<div style="font-size:12px;color:var(--muted)">分析中...</div>';
+  csvParsed = null;
 
-  const fd = new FormData();
-  fd.append('csv_file', file);
-  try {
-    const r = await fetch(API + '/api/csv/analyze', { method: 'POST', body: fd });
-    if (!r.ok) { toast(`CSV 分析失败（${r.status}）`, 'err'); return; }
-    const d = await r.json();
-    if (!d.categories || !d.categories.length) { toast('CSV 中未找到 workflow_name 类别，请确认文件格式', 'err'); return; }
-
-    document.getElementById('csv-total').textContent = `共 ${d.categories.length} 个类别`;
-    listEl.innerHTML = d.categories.map((c) => `
-      <div class="csv-template-item" onclick="toggleTplItem(this)">
-        <label onclick="event.stopPropagation()">
-          <input type="checkbox" class="tpl-check" data-name="${escHtml(c.name)}" onchange="onTplCheck(this)">
-          <span title="${escHtml(c.name)}">${escHtml(c.name)}</span>
-          <span class="tpl-count">${c.count} 条</span>
-        </label>
-        <input type="number" class="tpl-limit" value="${Math.min(c.count, 80)}" min="1" max="${c.count}" title="下载数量" onclick="event.stopPropagation()">
-      </div>`).join('');
-    document.getElementById('tpl-search').value = '';
-    updateTplLabel();
-    analysisEl.style.display = '';
-  } catch (e) { toast('CSV 分析请求失败：' + e, 'err'); }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = parseCSV(e.target.result);
+      if (!parsed || !parsed.categories.length) {
+        toast('CSV 中未找到 workflow_name 列，请确认文件格式', 'err');
+        return;
+      }
+      csvParsed = parsed;
+      document.getElementById('csv-total').textContent = `共 ${parsed.categories.length} 个类别`;
+      listEl.innerHTML = parsed.categories.map((c) => `
+        <div class="csv-template-item" onclick="toggleTplItem(this)">
+          <label onclick="event.stopPropagation()">
+            <input type="checkbox" class="tpl-check" data-name="${escHtml(c.name)}" onchange="onTplCheck(this)">
+            <span title="${escHtml(c.name)}">${escHtml(c.name)}</span>
+            <span class="tpl-count">${c.count} 条</span>
+          </label>
+          <input type="number" class="tpl-limit" value="${Math.min(c.count, 80)}" min="1" max="${c.count}" title="下载数量" onclick="event.stopPropagation()">
+        </div>`).join('');
+      document.getElementById('tpl-search').value = '';
+      updateTplLabel();
+      analysisEl.style.display = '';
+    } catch (err) {
+      toast('CSV 解析失败：' + err, 'err');
+    }
+  };
+  reader.onerror = () => toast('文件读取失败', 'err');
+  reader.readAsText(file, 'UTF-8');
 }
 
 // ── Tpl Dropdown ──────────────────────────────────────────────────────────────
@@ -923,8 +974,23 @@ async function submitDownload() {
   const btn = document.getElementById('btn-download');
   btn.disabled = true; btn.textContent = '⏳ 提交中...';
 
+  // Filter CSV client-side to only include selected categories, then upload
+  // the filtered (much smaller) file to avoid proxy body size limits.
+  let csvBlob;
+  if (csvParsed) {
+    const nameSet = new Set(cats.map(c => c.name));
+    const filtered = csvParsed.lines.filter(line => {
+      const name = (parseCSVLine(line)[csvParsed.workflowColIdx] || '').trim();
+      return nameSet.has(name);
+    });
+    const filteredText = csvParsed.headerLine + '\n' + filtered.join('\n');
+    csvBlob = new Blob([filteredText], { type: 'text/csv' });
+  } else {
+    csvBlob = selectedFile;
+  }
+
   const fd = new FormData();
-  fd.append('csv_file', selectedFile);
+  fd.append('csv_file', csvBlob, selectedFile.name);
   fd.append('categories', JSON.stringify(cats));
 
   try {
