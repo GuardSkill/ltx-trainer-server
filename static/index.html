@@ -178,6 +178,17 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 .dataset-chip:hover{border-color:var(--accent);color:var(--accent)}
 .dataset-chip .chip-count{font-size:10px;color:var(--muted)}
 
+/* ── Train Mode Toggle ── */
+.train-mode-tabs{display:flex;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:3px}
+.train-mode-tab{flex:1;padding:5px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:none;color:var(--muted);cursor:pointer;transition:.2s;text-align:center}
+.train-mode-tab.active{background:var(--accent);color:#fff}
+/* ── Multi-source list ── */
+.src-list{display:flex;flex-direction:column;gap:8px}
+.src-item{background:var(--bg);border:1px solid var(--border);border-radius:7px;overflow:hidden}
+.src-item-header{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--card)}
+.src-item-label{flex:1;font-size:12px;font-weight:600;color:var(--accent)}
+.src-item-body{padding:8px;display:flex;flex-direction:column;gap:6px}
+
 /* ── Dataset Manager ── */
 .ds-list{display:flex;flex-direction:column;gap:5px}
 .ds-item{background:var(--bg);border:1px solid var(--border);border-radius:7px;overflow:hidden}
@@ -341,22 +352,38 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
         <label>任务名称 *</label>
         <input type="text" id="t-name" placeholder="例：GymKiss LoRA">
       </div>
-      <div class="form-group">
-        <label>数据目录 *</label>
-        <select id="t-datadir-select" onchange="onDatasetSelect(this)" style="margin-bottom:4px">
-          <option value="">— 从已下载数据集选择 —</option>
-        </select>
-        <input type="text" id="t-datadir" placeholder="健身房镜头亲吻 或 datasets/下载3/xxx">
-        <div class="hint">从下拉选择或手动填写路径（autotraindata/ 下目录名 / 绝对路径）</div>
+      <!-- Train mode toggle -->
+      <div class="train-mode-tabs">
+        <button class="train-mode-tab active" id="tmode-single" onclick="switchTrainMode('single')">单数据集</button>
+        <button class="train-mode-tab" id="tmode-multi" onclick="switchTrainMode('multi')">多数据集（各自 Caption）</button>
       </div>
-      <div class="form-group">
-        <label>描述 Caption *</label>
-        <textarea id="t-caption" placeholder="所有视频共用的训练描述（也作为验证 prompt）"></textarea>
+
+      <!-- Single-source fields -->
+      <div id="train-single">
+        <div class="form-group">
+          <label>数据目录 *</label>
+          <select id="t-datadir-select" onchange="onDatasetSelect(this)" style="margin-bottom:4px">
+            <option value="">— 从已下载数据集选择 —</option>
+          </select>
+          <input type="text" id="t-datadir" placeholder="健身房镜头亲吻 或 datasets/下载3/xxx">
+          <div class="hint">从下拉选择或手动填写路径（autotraindata/ 下目录名 / 绝对路径）</div>
+        </div>
+        <div class="form-group">
+          <label>描述 Caption *</label>
+          <textarea id="t-caption" placeholder="所有视频共用的训练描述（也作为验证 prompt）"></textarea>
+        </div>
       </div>
+
+      <!-- Multi-source fields -->
+      <div id="train-multi" style="display:none">
+        <div class="src-list" id="src-list"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addSrcItem()" style="margin-top:4px;align-self:flex-start">+ 添加数据集</button>
+      </div>
+
       <div class="form-group">
         <label>触发词 Trigger（可选）</label>
         <input type="text" id="t-trigger" placeholder="例：GymKiss">
-        <div class="hint">训练时自动添加在 caption 前</div>
+        <div class="hint">训练时自动添加在各 caption 前</div>
       </div>
       <div class="divider"></div>
       <div class="section-title">训练参数</div>
@@ -750,8 +777,9 @@ async function loadDatasets() {
     const r = await fetch(API + '/api/datasets');
     if (!r.ok) return;
     const d = await r.json();
-    renderDsList(d.datasets || []);
-    populateDatasetSelect(d.datasets || []);
+    allDatasets = d.datasets || [];
+    renderDsList(allDatasets);
+    populateDatasetSelect(allDatasets);
   } catch {}
 }
 
@@ -813,9 +841,65 @@ function useDatasetForTrain(name) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
   document.getElementById('tab-train').classList.add('active');
-  document.getElementById('t-datadir').value = name;
-  document.getElementById('t-datadir-select').value = name;
+  if (currentTrainMode === 'multi') {
+    addSrcItem(name);
+  } else {
+    document.getElementById('t-datadir').value = name;
+    document.getElementById('t-datadir-select').value = name;
+  }
   toast(`已选择数据集：${name}`, 'ok');
+}
+
+// ── Train Mode ────────────────────────────────────────────────────────────────
+
+let currentTrainMode = 'single';
+let allDatasets = [];  // cached for src-item selects
+
+function switchTrainMode(mode) {
+  currentTrainMode = mode;
+  document.getElementById('train-single').style.display = mode === 'single' ? '' : 'none';
+  document.getElementById('train-multi').style.display  = mode === 'multi'  ? '' : 'none';
+  document.getElementById('tmode-single').classList.toggle('active', mode === 'single');
+  document.getElementById('tmode-multi').classList.toggle('active',  mode === 'multi');
+  if (mode === 'multi' && document.getElementById('src-list').children.length === 0) addSrcItem();
+  resumeDataSources = null;
+}
+
+function addSrcItem(presetName) {
+  const list = document.getElementById('src-list');
+  const idx = list.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'src-item';
+  const opts = allDatasets.map(ds =>
+    `<option value="${escHtml(ds.name)}" ${presetName === ds.name ? 'selected' : ''}>${escHtml(ds.name)} (${ds.file_count}个)</option>`
+  ).join('');
+  div.innerHTML = `
+    <div class="src-item-header">
+      <span class="src-item-label">数据集 ${idx}</span>
+      <select style="flex:1;font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text)">
+        <option value="">— 选择数据集 —</option>
+        ${opts}
+      </select>
+      <button class="btn btn-danger btn-sm" onclick="this.closest('.src-item').remove();renumberSrcItems()">×</button>
+    </div>
+    <div class="src-item-body">
+      <textarea placeholder="该数据集的训练描述 Caption *" style="width:100%;min-height:60px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:6px 8px;color:var(--text);font-size:12px;resize:vertical"></textarea>
+    </div>`;
+  list.appendChild(div);
+}
+
+function renumberSrcItems() {
+  document.querySelectorAll('.src-item-label').forEach((el, i) => el.textContent = `数据集 ${i + 1}`);
+}
+
+function readSrcItems() {
+  const items = [];
+  document.querySelectorAll('#src-list .src-item').forEach(item => {
+    const dir = item.querySelector('select').value.trim();
+    const caption = item.querySelector('textarea').value.trim();
+    if (dir && caption) items.push({ data_dir: dir, caption });
+  });
+  return items;
 }
 
 // ── Dataset Create ────────────────────────────────────────────────────────────
@@ -1029,10 +1113,7 @@ async function submitTrain() {
   const loadCkpt      = document.getElementById('t-load-ckpt').value.trim();
   const reusePrecomp  = document.getElementById('t-reuse-precomputed').value.trim();
 
-  const isReuseMultiSource = reusePrecomp && resumeDataSources && resumeDataSources.length;
   if (!name) { toast('请填写任务名称', 'err'); return; }
-  if (!isReuseMultiSource && !dataDir) { toast('请填写数据目录', 'err'); return; }
-  if (!isReuseMultiSource && !caption) { toast('请填写描述 Caption', 'err'); return; }
 
   const btn = document.getElementById('btn-train');
   btn.disabled = true; btn.textContent = '⏳ 提交中...';
@@ -1040,9 +1121,14 @@ async function submitTrain() {
   const body = { name, trigger,
     steps, rank, with_audio: audio, fp8_quant: fp8, high_capacity: highCap,
     checkpoint_interval: ckpt, validation_interval: val };
-  if (isReuseMultiSource) {
-    body.data_sources = resumeDataSources;
+
+  if (currentTrainMode === 'multi') {
+    const srcs = readSrcItems();
+    if (!srcs.length) { toast('请至少添加一个数据集并填写 Caption', 'err'); btn.disabled = false; btn.textContent = '🚀 加入训练队列'; return; }
+    body.data_sources = srcs;
   } else {
+    if (!dataDir) { toast('请填写数据目录', 'err'); btn.disabled = false; btn.textContent = '🚀 加入训练队列'; return; }
+    if (!caption) { toast('请填写描述 Caption', 'err'); btn.disabled = false; btn.textContent = '🚀 加入训练队列'; return; }
     body.data_dir = dataDir;
     body.caption = caption;
   }
@@ -1342,15 +1428,20 @@ function fillResumeForm(d) {
     document.getElementById('t-reuse-precomputed').value = s.reuse_precomputed_from_job || '';
 
     if (s.data_sources && s.data_sources.length) {
-      // Multi-source job: carry data_sources forward, caption not needed
+      // Multi-source job: switch to multi mode and fill each source row
       resumeDataSources = s.data_sources;
-      document.getElementById('t-datadir').value = '';
-      document.getElementById('t-caption').value = '';
+      switchTrainMode('multi');
+      const list = document.getElementById('src-list');
+      list.innerHTML = '';
+      s.data_sources.forEach((src, i) => {
+        addSrcItem(src.data_dir.split('/').pop());
+        const item = list.children[i];
+        item.querySelector('textarea').value = src.caption;
+      });
       box.style.display = 'block';
       box.innerHTML = `
         <div style="color:var(--yellow);font-weight:600;margin-bottom:4px">⚡ 无 checkpoint，但预处理数据可复用</div>
-        <div style="margin-bottom:4px">多数据源模式（${s.data_sources.length} 个数据集），<strong>无需填写 Caption</strong>，直接点击【加入训练队列】</div>
-        ${s.data_sources.map(src => `<div style="font-size:11px;color:var(--muted)">· ${src.data_dir.split('/').pop()}：${src.caption.slice(0,30)}…</div>`).join('')}
+        <div>已切换到多数据集模式，Caption 已自动填入，直接点击【加入训练队列】即可</div>
         <div style="margin-top:4px;color:var(--muted)">复用预处理数据自：<code>${d.job_id.slice(0,8)}</code></div>`;
     } else {
       resumeDataSources = null;
