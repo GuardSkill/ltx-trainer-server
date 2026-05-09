@@ -132,6 +132,13 @@ curl -s -X POST http://train_ltx23.dev.ad2.cc/api/download \
 
 下载是异步任务，返回 `job_id`。用 `GET /api/jobs/{job_id}` 轮询状态，`details.done/total` 是进度。完成后数据在 `datasets/autotraindata/<类别名>/`。
 
+**下载失败常见原因**（通过 `GET /api/jobs/{job_id}/log` 查看具体报错）：
+
+| 报错 | 原因 | 处理方式 |
+|------|------|---------|
+| `HTTP Error 403: Forbidden` | Signed URL 已过期（通常有效期 24 小时内） | 重新导出 CSV，获取新的签名 URL |
+| `unknown url type: 'comfly/...'` | CSV 中该类别的文件字段是相对路径而非完整 HTTPS URL，说明导出时该类别未生成签名 URL | 联系平台方确认该类别是否支持导出签名 URL |
+
 ---
 
 ### 3. 创建训练任务
@@ -191,7 +198,7 @@ curl -s -X POST http://train_ltx23.dev.ad2.cc/api/train \
   }'
 ```
 
-注意：`data_sources` 模式下顶层 `trigger` 不再影响每个视频的 caption（trigger 已在各 data_source 里设置），但如果设置了顶层 `trigger`，仍会作为 `--lora-trigger` 传给预处理脚本。
+注意：`data_sources` 模式下，每个来源的 `trigger` 会自动拼到该来源的 caption 前（服务端处理），**无需**在顶层再设置 `trigger`，否则重复无效。
 
 多个数据集要分开训练时，把所有参数整理成表格让用户确认，然后用 `POST /api/train/batch` 一次性排队。训练是单任务队列，自动顺序执行。
 
@@ -239,7 +246,7 @@ curl -s "http://train_ltx23.dev.ad2.cc/api/jobs/{job_id}/log?tail=200"
 - 速度：2.3 步/分钟，预计还需 42 分钟
 ```
 
-**常见失败原因**：数据目录不存在、目录里没有 mp4/webm 文件、显存不足（OOM）。
+**常见失败原因**：数据目录不存在、目录里没有 mp4/webm 文件、显存不足（OOM）、视频时长太短（帧数低于自动检测的 bucket 最小帧数，会全部被 skip 导致 latents 为空）。
 
 **失败恢复决策树**：
 
@@ -299,6 +306,7 @@ curl -s http://train_ltx23.dev.ad2.cc/api/train/{job_id}/resume-info
 - 使用 `suggested_restart` 里的参数
 - `reuse_precomputed_from_job` 填原任务 ID
 - 节省预处理时间（通常10-30分钟），直接从训练步开始
+- 若原任务是多数据集模式，`suggested_restart` 会包含 `data_sources` 字段，直接用它提交，**无需**单独填 `data_dir`/`caption`
 
 **两者都没有 → 从头开始**，重新提交完整训练任务。
 
