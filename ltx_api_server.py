@@ -653,8 +653,10 @@ class JobManager:
                 "--model-path", MODEL_PATH,
                 "--text-encoder-path", TEXT_ENCODER_PATH,
             ]
-            if trigger:
-                precompute_cmd += ["--lora-trigger", trigger]
+            # Trigger is already embedded in each caption in the JSON
+            # (both single-source full_caption and multi-source src_full include
+            # the per-source trigger).  Do NOT also pass --lora-trigger or the
+            # trigger word will be prepended twice by process_captions.py.
             if d.get("with_audio", DEFAULT_WITH_AUDIO):
                 precompute_cmd += ["--with-audio"]
 
