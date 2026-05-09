@@ -51,6 +51,39 @@ MODEL_PATH = "/root/models/LTX-2.3/ltx-2.3-22b-dev.safetensors"
 TEXT_ENCODER_PATH = "/root/lisiyuan/Models/gemma-3-12b-it-qat-q4_0-unquantized/"
 RESOLUTION_BUCKETS = "544x960x241;960x544x241;544x960x257"
 
+
+def _auto_resolution_buckets(video_paths: list[Path]) -> str:
+    """Sample up to 30 videos, find the 10th-percentile frame count,
+    round down to the nearest valid 8n+1, and return a bucket string."""
+    import subprocess
+    sample = video_paths[:30]
+    counts: list[int] = []
+    for vp in sample:
+        try:
+            r = subprocess.run(
+                ["ffprobe", "-v", "error", "-select_streams", "v:0",
+                 "-count_packets", "-show_entries", "stream=nb_read_packets",
+                 "-of", "csv=p=0", str(vp)],
+                capture_output=True, text=True, timeout=15,
+            )
+            n = int(r.stdout.strip())
+            if n > 0:
+                counts.append(n)
+        except Exception:
+            pass
+
+    if not counts:
+        log.warning("Could not probe any videos; falling back to default buckets")
+        return RESOLUTION_BUCKETS
+
+    counts.sort()
+    p10 = counts[max(0, len(counts) // 10)]   # 10th-percentile
+    # round down to nearest 8n+1, minimum 25 frames (~1 s)
+    n = max((p10 - 1) // 8, 3)
+    frames = n * 8 + 1
+    log.info("Auto bucket: sampled %d videos, p10=%d frames → using %d frames", len(counts), p10, frames)
+    return f"544x960x{frames};960x544x{frames}"
+
 DEFAULT_STEPS = 6000
 DEFAULT_RANK = 32
 DEFAULT_WITH_AUDIO = True
@@ -606,12 +639,16 @@ class JobManager:
             json_path = BASE_DIR / f"autotrain_{job_id}.json"
             json_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2))
 
+            # Auto-detect bucket frame count from actual video lengths
+            all_video_paths = [BASE_DIR / e["media_path"] for e in dataset]
+            res_buckets = _auto_resolution_buckets(all_video_paths)
+
             # Use stored precomputed_dir from details (includes job name suffix for new jobs)
             precomputed_dir = _job_precomputed_dir(self._jobs[job_id])
             precompute_cmd = [
                 "uv", "run", "python", "scripts/process_dataset.py",
                 str(json_path),
-                "--resolution-buckets", RESOLUTION_BUCKETS,
+                "--resolution-buckets", res_buckets,
                 "--output-dir", str(precomputed_dir),
                 "--model-path", MODEL_PATH,
                 "--text-encoder-path", TEXT_ENCODER_PATH,
