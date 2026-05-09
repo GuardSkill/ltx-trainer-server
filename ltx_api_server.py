@@ -1286,6 +1286,7 @@ def resume_info(job_id: str):
                 "checkpoint_interval": job.details.get("checkpoint_interval", DEFAULT_CHECKPOINT_INTERVAL),
                 "validation_interval": job.details.get("validation_interval", DEFAULT_VALIDATION_INTERVAL),
                 "reuse_precomputed_from_job": job_id if has_precomputed else None,
+                "data_sources": job.details.get("data_sources") or None,
             } if has_precomputed else None,
         }
 

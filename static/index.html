@@ -495,6 +495,7 @@ let refreshTimer = null;
 let detailRefreshTimer = null;
 let selectedFile = null;
 let csvParsed = null;  // { headerLine, lines, workflowColIdx, categories }
+let resumeDataSources = null;  // multi-source data_sources carried from resume-info
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 
@@ -1028,14 +1029,23 @@ async function submitTrain() {
   const loadCkpt      = document.getElementById('t-load-ckpt').value.trim();
   const reusePrecomp  = document.getElementById('t-reuse-precomputed').value.trim();
 
-  if (!name || !dataDir || !caption) { toast('请填写必填项（名称、数据目录、描述）', 'err'); return; }
+  const isReuseMultiSource = reusePrecomp && resumeDataSources && resumeDataSources.length;
+  if (!name) { toast('请填写任务名称', 'err'); return; }
+  if (!isReuseMultiSource && !dataDir) { toast('请填写数据目录', 'err'); return; }
+  if (!isReuseMultiSource && !caption) { toast('请填写描述 Caption', 'err'); return; }
 
   const btn = document.getElementById('btn-train');
   btn.disabled = true; btn.textContent = '⏳ 提交中...';
 
-  const body = { name, data_dir: dataDir, caption, trigger,
+  const body = { name, trigger,
     steps, rank, with_audio: audio, fp8_quant: fp8, high_capacity: highCap,
     checkpoint_interval: ckpt, validation_interval: val };
+  if (isReuseMultiSource) {
+    body.data_sources = resumeDataSources;
+  } else {
+    body.data_dir = dataDir;
+    body.caption = caption;
+  }
   if (vp) body.validation_prompt = vp;
   if (resumeJob) body.resume_from_job = resumeJob;
   else if (loadCkpt) body.load_checkpoint = loadCkpt;
@@ -1319,8 +1329,6 @@ function fillResumeForm(d) {
     // No checkpoint but precomputed data exists — restart training only
     const s = d.suggested_restart;
     document.getElementById('t-name').value = s.name;
-    document.getElementById('t-datadir').value = s.data_dir;
-    document.getElementById('t-caption').value = s.caption;
     document.getElementById('t-trigger').value = s.trigger || '';
     document.getElementById('t-steps').value = s.steps;
     document.getElementById('t-rank').value = s.rank;
@@ -1332,11 +1340,28 @@ function fillResumeForm(d) {
     document.getElementById('t-resume-job').value = '';
     document.getElementById('t-load-ckpt').value = '';
     document.getElementById('t-reuse-precomputed').value = s.reuse_precomputed_from_job || '';
-    box.style.display = 'block';
-    box.innerHTML = `
-      <div style="color:var(--yellow);font-weight:600;margin-bottom:4px">⚡ 无 checkpoint，但预处理数据可复用</div>
-      <div>参数已填入，<strong>点击下方【加入训练队列】按钮</strong>即可跳过预处理直接开始训练</div>
-      <div style="margin-top:4px;color:var(--muted)">复用预处理数据自：<code>${d.job_id.slice(0,8)}</code></div>`;
+
+    if (s.data_sources && s.data_sources.length) {
+      // Multi-source job: carry data_sources forward, caption not needed
+      resumeDataSources = s.data_sources;
+      document.getElementById('t-datadir').value = '';
+      document.getElementById('t-caption').value = '';
+      box.style.display = 'block';
+      box.innerHTML = `
+        <div style="color:var(--yellow);font-weight:600;margin-bottom:4px">⚡ 无 checkpoint，但预处理数据可复用</div>
+        <div style="margin-bottom:4px">多数据源模式（${s.data_sources.length} 个数据集），<strong>无需填写 Caption</strong>，直接点击【加入训练队列】</div>
+        ${s.data_sources.map(src => `<div style="font-size:11px;color:var(--muted)">· ${src.data_dir.split('/').pop()}：${src.caption.slice(0,30)}…</div>`).join('')}
+        <div style="margin-top:4px;color:var(--muted)">复用预处理数据自：<code>${d.job_id.slice(0,8)}</code></div>`;
+    } else {
+      resumeDataSources = null;
+      document.getElementById('t-datadir').value = s.data_dir;
+      document.getElementById('t-caption').value = s.caption;
+      box.style.display = 'block';
+      box.innerHTML = `
+        <div style="color:var(--yellow);font-weight:600;margin-bottom:4px">⚡ 无 checkpoint，但预处理数据可复用</div>
+        <div>参数已填入，<strong>点击下方【加入训练队列】按钮</strong>即可跳过预处理直接开始训练</div>
+        <div style="margin-top:4px;color:var(--muted)">复用预处理数据自：<code>${d.job_id.slice(0,8)}</code></div>`;
+    }
   }
 }
 
