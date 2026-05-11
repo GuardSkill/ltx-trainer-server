@@ -230,8 +230,17 @@ class JobManager:
                             name=f"tail-{job.job_id}",
                         ).start()
                     else:
-                        job.status = JobStatus.FAILED
-                        job.error = "Server restarted while job was running"
+                        # PID is dead.  Check if training completed before the server went down.
+                        cur = job.details.get("current_step", 0)
+                        total = job.details.get("total_steps", 0)
+                        if total > 0 and cur >= total:
+                            job.status = JobStatus.DONE
+                            job.details = {**job.details, "phase": "done"}
+                            log.info("Job %s (%s) PID dead but reached step %d/%d — marking DONE", job.job_id, job.name, cur, total)
+                        else:
+                            job.status = JobStatus.FAILED
+                            job.error = "Server restarted while job was running"
+                            log.info("Job %s (%s) PID dead at step %d/%d — marking FAILED", job.job_id, job.name, cur, total)
                         job.updated_at = datetime.now().isoformat()
                         self._persist(job)
                 elif job.status in (JobStatus.CANCELLED, JobStatus.FAILED) and job.pid:
@@ -259,7 +268,11 @@ class JobManager:
                 log.warning("Failed to load job %s: %s", f, e)
 
     def _resume_tail(self, job_id: str) -> None:
-        """Re-attach log-tail progress tracking for a job whose process survived a server restart."""
+        """Re-attach log-tail progress tracking for a job whose process survived a server restart.
+
+        Also detects when the adopted process exits and transitions the job to DONE or FAILED,
+        then releases _active_train so the queue can proceed.
+        """
         import re
         log_file = JOBS_DIR / f"{job_id}.log"
         step_re = re.compile(r"Step (\d+)/(\d+)")
@@ -273,6 +286,10 @@ class JobManager:
             time.sleep(1)
         if not log_file.exists():
             return
+
+        # Track how long we've seen no new lines (to detect process exit)
+        idle_seconds = 0
+
         with open(log_file, "r", errors="replace") as fh:
             fh.seek(0, 2)  # seek to end — only track new lines
             while True:
@@ -282,7 +299,43 @@ class JobManager:
                 line = fh.readline()
                 if not line:
                     time.sleep(1)
+                    idle_seconds += 1
+                    # After 5 s of silence, check if the adopted PID is still alive.
+                    # This catches the case where training finished while the server
+                    # was down — no new log lines will ever arrive.
+                    if idle_seconds >= 5:
+                        idle_seconds = 0
+                        pid = self._jobs[job_id].pid
+                        pid_alive = False
+                        if pid:
+                            try:
+                                os.kill(pid, 0)
+                                pid_alive = True
+                            except OSError:
+                                pass
+                        if not pid_alive:
+                            # Process has exited.  Determine outcome from current progress.
+                            det = self._jobs[job_id].details
+                            cur = det.get("current_step", 0)
+                            total = det.get("total_steps", 0)
+                            if total > 0 and cur >= total:
+                                # Reached the final step — treat as successful completion.
+                                new_det = {**det, "phase": "done"}
+                                self.update_job(job_id, status=JobStatus.DONE, details=new_det)
+                                log.info("Job %s (adopted): process exited at step %d/%d — marking DONE", job_id, cur, total)
+                            else:
+                                self.update_job(
+                                    job_id, status=JobStatus.FAILED,
+                                    error=f"Process exited unexpectedly at step {cur}/{total}",
+                                )
+                                log.warning("Job %s (adopted): process exited at step %d/%d — marking FAILED", job_id, cur, total)
+                            # Release the queue so pending jobs can start.
+                            with self._lock:
+                                if self._active_train == job_id:
+                                    self._active_train = None
+                            break
                     continue
+                idle_seconds = 0  # reset idle counter whenever we get a line
                 m = step_re.search(line)
                 if m:
                     cur, total = int(m.group(1)), int(m.group(2))
