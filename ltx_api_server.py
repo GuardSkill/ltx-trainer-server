@@ -493,19 +493,28 @@ class JobManager:
             counts: dict[str, int] = {n: 0 for n in cat_limit}
             tasks: list[tuple[str, str, Path]] = []
 
+            row_counter = 0
             with open(csv_path, newline="", encoding="utf-8-sig") as f:
                 for row in csv.DictReader(f):
-                    name = row.get("workflow_name", "")
+                    row_counter += 1
+                    name = row.get("workflow_name", "").strip()
                     if name not in cat_limit or counts[name] >= cat_limit[name]:
                         continue
+                    # Parse the files JSON array; skip row if column is missing or invalid
+                    raw_files = row.get("files", "")
+                    if not raw_files:
+                        log.debug("Download job %s row %d: empty/missing 'files' column — skipped", job_id, row_counter)
+                        continue
                     try:
-                        files = json.loads(row["files"])
-                    except Exception:
+                        files = json.loads(raw_files)
+                    except Exception as exc:
+                        log.warning("Download job %s row %d: cannot parse 'files' JSON (%s) — skipped", job_id, row_counter, exc)
                         continue
                     if not files:
                         continue
                     url = files[0]
-                    row_id = row["id"]
+                    # Use the 'id' column if present; fall back to a counter-based name
+                    row_id = row.get("id") or f"row{row_counter}"
                     ext = os.path.splitext(url.split("?")[0])[1] or ".mp4"
                     dest = DATASETS_DIR / name / f"{row_id}{ext}"
                     tasks.append((name, url, dest))
